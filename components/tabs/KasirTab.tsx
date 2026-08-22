@@ -24,6 +24,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
   const [nameError, setNameError] = useState(false)
+  const [modalNameError, setModalNameError] = useState(false)
 
   useEffect(() => {
     fetchMenu()
@@ -85,8 +86,9 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
   function openPayModal(mode: 'bayar' | 'tab') {
     if (!cart.length) return
-    if (!customerName.trim()) { setNameError(true); onToast('Nama / meja wajib diisi'); return }
-    setNameError(false)
+    setCustomerName('')
+    setModalNameError(false)
+    setPaidAmount('')
     setPayModal(mode)
   }
 
@@ -95,8 +97,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
   async function confirmPay(mode: 'bayar' | 'tab') {
     if (!cart.length) return
+    if (!customerName.trim()) { setModalNameError(true); return }
+    setModalNameError(false)
     setLoading(true)
-    const cust = customerName.trim() || 'Tamu'
+    const cust = customerName.trim()
 
     const { data: order, error } = await supabase
       .from('orders')
@@ -215,20 +219,11 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
       {/* Order panel */}
       <div className="w-full sm:w-[290px] flex-shrink-0 bg-white flex flex-col max-h-[42vh] sm:max-h-none">
-        <div className="px-3.5 py-3 border-b border-[var(--color-border)] flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Pesanan</span>
-            <button onClick={clearCart} className="text-[11px] font-semibold text-[var(--color-muted)] bg-[var(--color-surface2)] border border-[var(--color-border)] px-2 py-1 rounded-md hover:text-[var(--color-text)] transition-colors">
-              Bersihkan Pesanan
-            </button>
-          </div>
-          <input
-            value={customerName}
-            onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setNameError(false) }}
-            placeholder="Nama / no. meja (wajib)"
-            className={`w-full px-3 py-1.5 text-[12px] border-[1.5px] rounded-lg outline-none placeholder:text-[var(--color-muted)] transition-colors
-              ${nameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
-          />
+        <div className="px-3.5 py-2.5 border-b border-[var(--color-border)] flex-shrink-0 flex items-center justify-between">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Pesanan</span>
+          <button onClick={clearCart} className="text-[11px] font-semibold text-[var(--color-muted)] bg-[var(--color-surface2)] border border-[var(--color-border)] px-2 py-1 rounded-md hover:text-[var(--color-text)] transition-colors">
+            Bersihkan Pesanan
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-3.5">
@@ -317,10 +312,21 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {/* Payment modal */}
       {payModal && (
         <Modal onClose={() => { setPayModal(null); setPaidAmount('') }}>
-          <h2 className="text-[16px] font-extrabold text-center mb-1">
+          <h2 className="text-[16px] font-extrabold text-center mb-4">
             {payModal === 'tab' ? '📌 Orderan Terbuka' : '💳 Bayar Sekarang'}
           </h2>
-          <p className="text-center text-[13px] font-bold text-[var(--color-primary)] mb-4">{customerName}</p>
+          <div className="mb-3">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama / No. Meja *</label>
+            <input
+              autoFocus
+              value={customerName}
+              onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setModalNameError(false) }}
+              placeholder="cth: Meja 3 / Budi"
+              className={`w-full px-3 py-2 border-[1.5px] rounded-lg text-[13px] outline-none transition-colors
+                ${modalNameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+            />
+            {modalNameError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Nama / meja wajib diisi</p>}
+          </div>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
             {cart.map(i => (
               <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5 tabular-nums">
