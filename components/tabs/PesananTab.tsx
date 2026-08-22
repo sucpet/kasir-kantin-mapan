@@ -9,9 +9,10 @@ import Modal from '@/components/Modal'
 interface PesananTabProps {
   onToast: (msg: string) => void
   refreshKey: number
+  onOrderSettled: () => void
 }
 
-export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
+export default function PesananTab({ onToast, refreshKey, onOrderSettled }: PesananTabProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
   const [settleModal, setSettleModal] = useState<Order | null>(null)
@@ -52,6 +53,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
     setExpanded(null)
     setPaidAmount('')
     setLoading(false)
+    onOrderSettled()
     setReceiptOrder({ ...order, status: 'paid', paid_amount: paid })
   }
 

@@ -145,7 +145,7 @@ export default function App() {
       {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'kasir'   && <KasirTab   onToast={toast} onOrderCreated={handleOrderCreated} />}
-        {tab === 'pesanan' && <PesananTab onToast={toast} refreshKey={refreshKey} />}
+        {tab === 'pesanan' && <PesananTab onToast={toast} refreshKey={refreshKey} onOrderSettled={handleOrderCreated} />}
         {tab === 'menu'    && <MenuTab    onToast={toast} />}
         {tab === 'rekap'   && <RekapTab />}
       </div>
