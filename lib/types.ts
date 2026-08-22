@@ -20,6 +20,7 @@ export interface OrderItem {
   name: string
   price: number
   qty: number
+  note: string | null
 }
 
 export interface Order {
@@ -31,6 +32,7 @@ export interface Order {
   note: string | null
   created_at: string
   paid_at: string | null
+  payment_method: string | null
   order_items?: OrderItem[]
 }
 
@@ -40,4 +42,5 @@ export interface CartItem {
   name: string
   price: number
   qty: number
+  note: string
 }

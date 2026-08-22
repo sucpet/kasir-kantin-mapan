@@ -135,9 +135,16 @@ export default function RekapTab() {
                   <div className="text-[11px] text-[var(--color-muted)] tabular-nums">{fmtTime(o.created_at)} · {o.order_items?.reduce((s, i) => s + i.qty, 0)} item</div>
                 </div>
                 <div className="text-right">
-                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-0.5 ${o.status === 'paid' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
-                    {o.status === 'paid' ? 'Lunas' : 'Tab'}
-                  </span>
+                  <div className="flex items-center justify-end gap-1 mb-0.5">
+                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'paid' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
+                      {o.status === 'paid' ? 'Lunas' : 'Tab'}
+                    </span>
+                    {o.payment_method && (
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-surface2)] text-[var(--color-muted)] border border-[var(--color-border)]">
+                        {o.payment_method}
+                      </span>
+                    )}
+                  </div>
                   <div className={`text-[13px] font-extrabold tabular-nums ${o.status === 'paid' ? 'text-[var(--color-success)]' : 'text-[var(--color-accent)]'}`}>
                     {rp(o.total)}
                   </div>

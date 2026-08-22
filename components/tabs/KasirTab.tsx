@@ -27,6 +27,8 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [nameError, setNameError] = useState(false)
   const [modalNameError, setModalNameError] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [payMethodError, setPayMethodError] = useState(false)
 
   useEffect(() => {
     fetchMenu()
@@ -68,7 +70,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     setCart(prev => {
       const ex = prev.find(c => c.cartKey === cartKey)
       if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c)
-      return [...prev, { menuId: item.id, cartKey, name: displayName, price: item.price, qty: 1 }]
+      return [...prev, { menuId: item.id, cartKey, name: displayName, price: item.price, qty: 1, note: '' }]
     })
   }
 
@@ -91,11 +93,17 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     setConfirmClear(false)
   }
 
+  function updateNote(cartKey: string, note: string) {
+    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, note } : c))
+  }
+
   function openPayModal(mode: 'bayar' | 'tab') {
     if (!cart.length) return
     setCustomerName('')
     setModalNameError(false)
     setPaidAmount('')
+    setPaymentMethod('')
+    setPayMethodError(false)
     setPayModal(mode)
   }
 
@@ -105,7 +113,9 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   async function confirmPay(mode: 'bayar' | 'tab') {
     if (!cart.length) return
     if (!customerName.trim()) { setModalNameError(true); return }
+    if (mode === 'bayar' && !paymentMethod) { setPayMethodError(true); return }
     setModalNameError(false)
+    setPayMethodError(false)
     setLoading(true)
     const cust = customerName.trim()
 
@@ -117,6 +127,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         total,
         paid_amount: mode === 'bayar' ? (Number(paidAmount) || total) : null,
         paid_at: mode === 'bayar' ? new Date().toISOString() : null,
+        payment_method: mode === 'bayar' ? paymentMethod : null,
       })
       .select()
       .single()
@@ -130,6 +141,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         name: c.name,
         price: c.price,
         qty: c.qty,
+        note: c.note || null,
       }))
     )
 
@@ -142,17 +154,22 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     if (mode === 'tab') {
       onToast(`Orderan terbuka "${cust}" disimpan!`)
     } else {
-      setReceiptOrder({ ...order, order_items: cart.map(c => ({ id: '', order_id: order.id, menu_item_id: c.menuId, name: c.name, price: c.price, qty: c.qty })) })
+      setReceiptOrder({ ...order, order_items: cart.map(c => ({ id: '', order_id: order.id, menu_item_id: c.menuId, name: c.name, price: c.price, qty: c.qty, note: c.note || null })) })
     }
   }
 
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
     let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\n${line}\n`
-    o.order_items?.forEach(i => { r += `${i.name}\n  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n` })
+    o.order_items?.forEach(i => {
+      r += `${i.name}\n`
+      if (i.note) r += `  * ${i.note}\n`
+      r += `  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n`
+    })
     r += `${line}\nTOTAL     : ${rp(o.total)}\n`
     if (o.status === 'paid') {
       r += `BAYAR     : ${rp(o.paid_amount ?? o.total)}\nKEMBALI   : ${rp(Math.max(0, (o.paid_amount ?? o.total) - o.total))}\n`
+      if (o.payment_method) r += `METODE    : ${o.payment_method}\n`
     } else {
       r += `STATUS    : BELUM DIBAYAR\n`
     }
@@ -241,22 +258,30 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.cartKey} className="flex items-start gap-2 py-2.5 border-b border-[var(--color-border-lt)]">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-semibold leading-tight">{item.name}</div>
-                  <div className="text-[11px] text-[var(--color-muted)] tabular-nums mt-0.5">
-                    {rp(item.price)} × {item.qty} = {rp(item.price * item.qty)}
+              <div key={item.cartKey} className="py-2.5 border-b border-[var(--color-border-lt)]">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] font-semibold leading-tight">{item.name}</div>
+                    <div className="text-[11px] text-[var(--color-muted)] tabular-nums mt-0.5">
+                      {rp(item.price)} × {item.qty} = {rp(item.price * item.qty)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button onClick={() => adjustQty(item.cartKey, -1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
+                      <Minus size={10} strokeWidth={3} />
+                    </button>
+                    <span className="text-[13px] font-extrabold min-w-[18px] text-center tabular-nums">{item.qty}</span>
+                    <button onClick={() => adjustQty(item.cartKey, 1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
+                      <Plus size={10} strokeWidth={3} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button onClick={() => adjustQty(item.cartKey, -1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
-                    <Minus size={10} strokeWidth={3} />
-                  </button>
-                  <span className="text-[13px] font-extrabold min-w-[18px] text-center tabular-nums">{item.qty}</span>
-                  <button onClick={() => adjustQty(item.cartKey, 1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
-                    <Plus size={10} strokeWidth={3} />
-                  </button>
-                </div>
+                <input
+                  value={item.note}
+                  onChange={e => updateNote(item.cartKey, e.target.value)}
+                  placeholder="Catatan... (cth: tidak pedas)"
+                  className="w-full mt-1.5 px-2 py-1 text-[11px] border border-[var(--color-border)] rounded-md outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] bg-transparent"
+                />
               </div>
             ))
           )}
@@ -344,6 +369,26 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
               <span>TOTAL</span><span>{rp(total)}</span>
             </div>
           </div>
+
+          {payModal === 'bayar' && (
+            <div className="mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Metode Pembayaran *</label>
+              <div className="grid grid-cols-3 gap-2 mb-1">
+                {[{ id: 'Tunai', icon: '💵' }, { id: 'Transfer', icon: '🏦' }, { id: 'QRIS', icon: '📱' }].map(m => (
+                  <button key={m.id} type="button"
+                    onClick={() => { setPaymentMethod(m.id); setPayMethodError(false) }}
+                    className={`py-2 rounded-lg text-[12px] font-bold border-[1.5px] transition-all
+                      ${paymentMethod === m.id
+                        ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                        : `bg-[var(--color-surface2)] text-[var(--color-muted)] ${payMethodError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`
+                      }`}>
+                    {m.icon} {m.id}
+                  </button>
+                ))}
+              </div>
+              {payMethodError && <p className="text-[11px] text-[var(--color-danger)] mb-2 font-semibold">Pilih metode pembayaran</p>}
+            </div>
+          )}
 
           {payModal === 'bayar' && (
             <div className="mb-3">

@@ -19,6 +19,8 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   const [paidAmount, setPaidAmount] = useState('')
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [payMethodError, setPayMethodError] = useState(false)
 
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
@@ -41,17 +43,20 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   }, [fetchOrders])
 
   async function confirmSettle(order: Order) {
+    if (!paymentMethod) { setPayMethodError(true); return }
     setLoading(true)
     const paid = Number(paidAmount) || order.total
     const { error } = await supabase
       .from('orders')
-      .update({ status: 'paid', paid_amount: paid, paid_at: new Date().toISOString() })
+      .update({ status: 'paid', paid_amount: paid, paid_at: new Date().toISOString(), payment_method: paymentMethod })
       .eq('id', order.id)
     if (error) { onToast('Gagal memperbarui pesanan'); setLoading(false); return }
     setOrders(prev => prev.filter(o => o.id !== order.id))
     setSettleModal(null)
     setExpanded(null)
     setPaidAmount('')
+    setPaymentMethod('')
+    setPayMethodError(false)
     setLoading(false)
     onOrderSettled()
     setReceiptOrder({ ...order, status: 'paid', paid_amount: paid })
@@ -60,10 +65,15 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
     let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\n${line}\n`
-    o.order_items?.forEach(i => { r += `${i.name}\n  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n` })
+    o.order_items?.forEach(i => {
+      r += `${i.name}\n`
+      if (i.note) r += `  * ${i.note}\n`
+      r += `  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n`
+    })
     r += `${line}\nTOTAL     : ${rp(o.total)}\n`
     if (o.status === 'paid') {
       r += `BAYAR     : ${rp(o.paid_amount ?? o.total)}\nKEMBALI   : ${rp(Math.max(0, (o.paid_amount ?? o.total) - o.total))}\n`
+      if (o.payment_method) r += `METODE    : ${o.payment_method}\n`
     } else {
       r += `STATUS    : BELUM DIBAYAR\n`
     }
@@ -147,17 +157,38 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
       {/* Settle modal */}
       {settleModal && (
-        <Modal onClose={() => { setSettleModal(null); setPaidAmount('') }}>
-          <h2 className="text-[16px] font-extrabold text-center mb-4">💳 Bayar Tab: {settleModal.customer_name}</h2>
+        <Modal onClose={() => { setSettleModal(null); setPaidAmount(''); setPaymentMethod(''); setPayMethodError(false) }}>
+          <h2 className="text-[16px] font-extrabold text-center mb-1">💳 Bayar</h2>
+          <p className="text-center text-[13px] font-bold text-[var(--color-primary)] mb-4">{settleModal.customer_name}</p>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
             {settleModal.order_items?.map(i => (
-              <div key={i.id} className="flex justify-between text-[12px] py-0.5 tabular-nums">
-                <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
+              <div key={i.id} className="py-0.5">
+                <div className="flex justify-between text-[12px] tabular-nums">
+                  <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
+                </div>
+                {i.note && <div className="text-[10px] text-[var(--color-primary)] opacity-80 italic">→ {i.note}</div>}
               </div>
             ))}
             <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
               <span>TOTAL</span><span>{rp(settleModal.total)}</span>
             </div>
+          </div>
+          <div className="mb-3">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Metode Pembayaran *</label>
+            <div className="grid grid-cols-3 gap-2 mb-1">
+              {[{ id: 'Tunai', icon: '💵' }, { id: 'Transfer', icon: '🏦' }, { id: 'QRIS', icon: '📱' }].map(m => (
+                <button key={m.id} type="button"
+                  onClick={() => { setPaymentMethod(m.id); setPayMethodError(false) }}
+                  className={`py-2 rounded-lg text-[12px] font-bold border-[1.5px] transition-all
+                    ${paymentMethod === m.id
+                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                      : `bg-[var(--color-surface2)] text-[var(--color-muted)] ${payMethodError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`
+                    }`}>
+                  {m.icon} {m.id}
+                </button>
+              ))}
+            </div>
+            {payMethodError && <p className="text-[11px] text-[var(--color-danger)] mb-2 font-semibold">Pilih metode pembayaran</p>}
           </div>
           <div className="mb-3">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Uang Diterima</label>
@@ -174,7 +205,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
             className="w-full py-2.5 rounded-lg text-[13px] font-bold text-white bg-[var(--color-success)] mb-1.5 disabled:opacity-50 hover:bg-[#1f6440] transition-colors">
             {loading ? 'Memproses...' : '✅ Konfirmasi Bayar'}
           </button>
-          <button onClick={() => { setSettleModal(null); setPaidAmount('') }}
+          <button onClick={() => { setSettleModal(null); setPaidAmount(''); setPaymentMethod(''); setPayMethodError(false) }}
             className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
