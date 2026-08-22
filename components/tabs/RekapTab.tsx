@@ -105,7 +105,7 @@ export default function RekapTab() {
         {!loading && orders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--color-muted)]">
             <span className="text-4xl">📊</span>
-            <span className="text-[13px] font-bold text-[#1C2420]">Belum ada transaksi</span>
+            <span className="text-[13px] font-bold text-[var(--color-text)]">Belum ada transaksi</span>
             <span className="text-xs">Tidak ada data untuk {fmtDate(date).split(' — ')[0]}</span>
           </div>
         )}
@@ -135,7 +135,7 @@ export default function RekapTab() {
                   <div className="text-[11px] text-[var(--color-muted)] tabular-nums">{fmtTime(o.created_at)} · {o.order_items?.reduce((s, i) => s + i.qty, 0)} item</div>
                 </div>
                 <div className="text-right">
-                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-0.5 ${o.status === 'paid' ? 'bg-[var(--color-success-light)] text-[#185c32]' : 'bg-[var(--color-accent-light)] text-[#8a4a00]'}`}>
+                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-0.5 ${o.status === 'paid' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
                     {o.status === 'paid' ? 'Lunas' : 'Tab'}
                   </span>
                   <div className={`text-[13px] font-extrabold tabular-nums ${o.status === 'paid' ? 'text-[var(--color-success)]' : 'text-[var(--color-accent)]'}`}>
@@ -157,7 +157,7 @@ export default function RekapTab() {
           <button onClick={() => doPrint(receiptOrder)} className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mt-3 hover:bg-[var(--color-primary-mid)] transition-colors">
             🖨️ Print
           </button>
-          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[#1C2420] transition-colors">
+          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[var(--color-text)] transition-colors">
             Tutup
           </button>
         </Modal>

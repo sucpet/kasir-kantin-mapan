@@ -137,7 +137,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--color-muted)]">
             <span className="text-4xl">🍽️</span>
-            <span className="text-[13px] font-bold text-[#1C2420]">Belum ada menu</span>
+            <span className="text-[13px] font-bold text-[var(--color-text)]">Belum ada menu</span>
             <span className="text-xs">Klik &quot;+ Tambah Item&quot; untuk mulai</span>
           </div>
         )}
@@ -256,7 +256,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
             {saving ? 'Menyimpan...' : '💾 Simpan'}
           </button>
           <button onClick={() => setShowEditor(false)}
-            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[#1C2420] transition-colors">
+            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
         </Modal>

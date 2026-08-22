@@ -1,24 +1,64 @@
 @import "tailwindcss";
 
+/* === BASE THEME = DARK MODE === */
 @theme inline {
+  /* Brand */
+  --color-primary: #3D8060;
+  --color-primary-mid: #4D9872;
+  --color-primary-light: #192A1F;
+
+  /* Accent */
+  --color-accent: #E07B2A;
+  --color-accent-light: #2B1C0D;
+
+  /* Status */
+  --color-success: #35A468;
+  --color-success-light: #122419;
+  --color-danger: #D45C45;
+  --color-danger-light: #2A1510;
+
+  /* Surfaces */
+  --color-bg: #111A13;
+  --color-surface: #1B2420;
+  --color-surface2: #222D26;
+  --color-border: #2D3E30;
+  --color-border-lt: #253028;
+
+  /* Text */
+  --color-text: #C8DDD0;
+  --color-muted: #7A9082;
+  --color-success-text: #3DBD78;
+  --color-accent-text: #F0A855;
+}
+
+/* === LIGHT MODE OVERRIDE === */
+html.light {
   --color-primary: #2A5D48;
   --color-primary-mid: #3A7A60;
   --color-primary-light: #E3EFE8;
+
   --color-accent: #E07B2A;
   --color-accent-light: #FDF0E5;
+
   --color-success: #277A4F;
   --color-success-light: #DFF2E9;
   --color-danger: #C44B35;
   --color-danger-light: #FAEAE6;
+
   --color-bg: #F0EEE9;
   --color-surface: #FFFFFF;
   --color-surface2: #F7F5F1;
   --color-border: #DAD8D2;
   --color-border-lt: #ECEAE5;
+
+  --color-text: #1C2420;
   --color-muted: #6A716B;
+  --color-success-text: #185c32;
+  --color-accent-text: #8a4a00;
 }
 
-*,*::before,*::after { box-sizing: border-box; }
+/* === RESET === */
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
   height: 100%;
@@ -30,7 +70,7 @@ html, body {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background: var(--color-bg);
-  color: #1C2420;
+  color: var(--color-text);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -44,9 +84,29 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
 .scrollbar-hide { scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+/* === DARK MODE: override bg-white → surface === */
+html:not(.light) .bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+/* === DARK MODE: inputs & selects === */
+html:not(.light) input,
+html:not(.light) select,
+html:not(.light) textarea {
+  background-color: var(--color-surface2) !important;
+  color: var(--color-text) !important;
+  color-scheme: dark;
+}
+
+html:not(.light) input::placeholder,
+html:not(.light) textarea::placeholder {
+  color: var(--color-muted) !important;
+  opacity: 1;
+}
+
 @media print {
-  body > *:not(#print-zone) { display: none !important; }
-  #print-zone {
+  body > *:not(#print-zone):not(#print-zone-rekap) { display: none !important; }
+  #print-zone, #print-zone-rekap {
     display: block !important;
     font-family: 'Courier New', monospace;
     font-size: 11pt;

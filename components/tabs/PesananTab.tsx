@@ -88,7 +88,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
         {orders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--color-muted)]">
             <span className="text-4xl">✅</span>
-            <span className="text-[13px] font-bold text-[#1C2420]">Tidak ada pesanan terbuka</span>
+            <span className="text-[13px] font-bold text-[var(--color-text)]">Tidak ada pesanan terbuka</span>
             <span className="text-xs">Semua tab sudah lunas</span>
           </div>
         )}
@@ -108,7 +108,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-[14px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(order.total)}</div>
-                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[#8a4a00]">Tab Terbuka</span>
+                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>
                 </div>
                 <ChevronDown size={14} className={`text-[var(--color-muted)] transition-transform ${isExp ? 'rotate-180' : ''}`} />
               </div>
@@ -132,7 +132,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
                       💳 Bayar
                     </button>
                     <button onClick={() => setReceiptOrder(order)}
-                      className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[#1C2420] transition-colors">
+                      className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors">
                       🖨️
                     </button>
                   </div>
@@ -153,7 +153,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
                 <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
               </div>
             ))}
-            <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[#afd0bc] tabular-nums">
+            <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
               <span>TOTAL</span><span>{rp(settleModal.total)}</span>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
             {loading ? 'Memproses...' : '✅ Konfirmasi Bayar'}
           </button>
           <button onClick={() => { setSettleModal(null); setPaidAmount('') }}
-            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[#1C2420] transition-colors">
+            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
         </Modal>
@@ -189,7 +189,7 @@ export default function PesananTab({ onToast, refreshKey }: PesananTabProps) {
           <button onClick={() => doPrint(receiptOrder)} className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mt-3 hover:bg-[var(--color-primary-mid)] transition-colors">
             🖨️ Print
           </button>
-          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[#1C2420] transition-colors">
+          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[var(--color-text)] transition-colors">
             Tutup
           </button>
         </Modal>

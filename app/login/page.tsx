@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary)] mb-4 shadow-lg">
             <span className="text-3xl">🛒</span>
           </div>
-          <h1 className="text-[22px] font-extrabold text-[#1C2420] tracking-tight">Kasir Kantin Mapan</h1>
+          <h1 className="text-[22px] font-extrabold text-[var(--color-text)] tracking-tight">Kasir Kantin Mapan</h1>
           <p className="text-[13px] text-[var(--color-muted)] mt-1">Masuk untuk mengelola kasir</p>
         </div>
 

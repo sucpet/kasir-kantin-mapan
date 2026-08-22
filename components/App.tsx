@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, Sun, Moon } from 'lucide-react'
 import KasirTab from './tabs/KasirTab'
 import PesananTab from './tabs/PesananTab'
 import MenuTab from './tabs/MenuTab'
@@ -25,7 +25,24 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [time, setTime] = useState('')
   const [userEmail, setUserEmail] = useState('')
+  const [isLight, setIsLight] = useState(false)
   const { show: toast, node: toastNode } = useToast()
+
+  useEffect(() => {
+    setIsLight(document.documentElement.classList.contains('light'))
+  }, [])
+
+  function toggleTheme() {
+    const next = !isLight
+    setIsLight(next)
+    if (next) {
+      document.documentElement.classList.add('light')
+      localStorage.setItem('theme', 'light')
+    } else {
+      document.documentElement.classList.remove('light')
+      localStorage.setItem('theme', 'dark')
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -84,6 +101,13 @@ export default function App() {
             <div className="text-[13px] tabular-nums opacity-70 font-medium">{time}</div>
             <div className="text-[10px] opacity-50 truncate max-w-[140px]">{userEmail}</div>
           </div>
+          <button
+            onClick={toggleTheme}
+            title={isLight ? 'Mode Gelap' : 'Mode Terang'}
+            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            {isLight ? <Moon size={14} /> : <Sun size={14} />}
+          </button>
           <button
             onClick={handleLogout}
             title="Keluar"
