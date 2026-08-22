@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption } from '@/lib/types'
 import { rp } from '@/lib/utils'
 import Modal from '@/components/Modal'
+import ConfirmModal from '@/components/ConfirmModal'
 
 interface MenuTabProps {
   onToast: (msg: string) => void
@@ -20,6 +21,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
   const [form, setForm] = useState({ name: '', price: '', category: '', newCat: '' })
   const [formOpts, setFormOpts] = useState<FormOpt[]>([])
   const [saving, setSaving] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const fetchItems = useCallback(async () => {
     const { data } = await supabase.from('menu_items').select('*').order('category').order('name')
@@ -50,10 +52,11 @@ export default function MenuTab({ onToast }: MenuTabProps) {
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, available: !i.available } : i))
   }
 
-  async function deleteItem(id: string) {
-    if (!confirm('Hapus item ini?')) return
-    await supabase.from('menu_items').delete().eq('id', id)
-    setItems(prev => prev.filter(i => i.id !== id))
+  async function doDeleteItem() {
+    if (!deleteId) return
+    await supabase.from('menu_items').delete().eq('id', deleteId)
+    setItems(prev => prev.filter(i => i.id !== deleteId))
+    setDeleteId(null)
     onToast('Item dihapus')
   }
 
@@ -165,7 +168,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
                   ${item.available ? 'left-[19px]' : 'left-[3px]'}`} />
               </button>
               <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-sm hover:bg-[var(--color-border)] transition-colors">✏️</button>
-              <button onClick={() => deleteItem(item.id)} className="p-1.5 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-sm hover:bg-[var(--color-danger-light)] transition-colors">🗑️</button>
+              <button onClick={() => setDeleteId(item.id)} className="p-1.5 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-sm hover:bg-[var(--color-danger-light)] transition-colors">🗑️</button>
             </div>
           </div>
         ))}
@@ -260,6 +263,17 @@ export default function MenuTab({ onToast }: MenuTabProps) {
             Batal
           </button>
         </Modal>
+      )}
+
+      {deleteId && (
+        <ConfirmModal
+          title="Hapus Menu?"
+          message={`"${items.find(i => i.id === deleteId)?.name}" akan dihapus permanen.`}
+          confirmLabel="Ya, Hapus"
+          danger
+          onConfirm={doDeleteItem}
+          onCancel={() => setDeleteId(null)}
+        />
       )}
     </div>
   )

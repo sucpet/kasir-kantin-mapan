@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
 import { rp, orderSum } from '@/lib/utils'
 import Modal from '@/components/Modal'
+import ConfirmModal from '@/components/ConfirmModal'
 
 interface KasirTabProps {
   onToast: (msg: string) => void
@@ -25,6 +26,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
   const [nameError, setNameError] = useState(false)
   const [modalNameError, setModalNameError] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   useEffect(() => {
     fetchMenu()
@@ -78,10 +80,15 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   }
 
   function clearCart() {
-    if (cart.length > 0 && !confirm('Yakin ingin menghapus semua pesanan?')) return
+    if (cart.length > 0) { setConfirmClear(true); return }
+    doClearCart()
+  }
+
+  function doClearCart() {
     setCart([])
     setCustomerName('')
     setNameError(false)
+    setConfirmClear(false)
   }
 
   function openPayModal(mode: 'bayar' | 'tab') {
@@ -389,6 +396,17 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             Tutup
           </button>
         </Modal>
+      )}
+
+      {confirmClear && (
+        <ConfirmModal
+          title="Bersihkan Pesanan?"
+          message="Semua item di keranjang akan dihapus."
+          confirmLabel="Ya, Bersihkan"
+          danger
+          onConfirm={doClearCart}
+          onCancel={() => setConfirmClear(false)}
+        />
       )}
 
       <div id="print-zone" className="hidden" />
