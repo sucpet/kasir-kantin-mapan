@@ -77,6 +77,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   }
 
   function clearCart() {
+    if (cart.length > 0 && !confirm('Yakin ingin menghapus semua pesanan?')) return
     setCart([])
     setCustomerName('')
     setNameError(false)
@@ -128,7 +129,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     onOrderCreated()
 
     if (mode === 'tab') {
-      onToast(`Tab "${cust}" dibuat!`)
+      onToast(`Orderan terbuka "${cust}" disimpan!`)
     } else {
       setReceiptOrder({ ...order, order_items: cart.map(c => ({ id: '', order_id: order.id, menu_item_id: c.menuId, name: c.name, price: c.price, qty: c.qty })) })
     }
@@ -218,7 +219,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Pesanan</span>
             <button onClick={clearCart} className="text-[11px] font-semibold text-[var(--color-muted)] bg-[var(--color-surface2)] border border-[var(--color-border)] px-2 py-1 rounded-md hover:text-[var(--color-text)] transition-colors">
-              Bersihkan
+              Bersihkan Pesanan
             </button>
           </div>
           <input
@@ -268,7 +269,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             ✅ Bayar Sekarang
           </button>
           <button onClick={() => openPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
-            📌 Simpan Tab
+            📌 Orderan Terbuka
           </button>
         </div>
       </div>
@@ -316,11 +317,11 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {/* Payment modal */}
       {payModal && (
         <Modal onClose={() => { setPayModal(null); setPaidAmount('') }}>
-          <h2 className="text-[16px] font-extrabold text-center mb-4">
-            {payModal === 'tab' ? '📌 Simpan Tab' : '💳 Pembayaran'}
+          <h2 className="text-[16px] font-extrabold text-center mb-1">
+            {payModal === 'tab' ? '📌 Orderan Terbuka' : '💳 Bayar Sekarang'}
           </h2>
+          <p className="text-center text-[13px] font-bold text-[var(--color-primary)] mb-4">{customerName}</p>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
-            <div className="text-[11px] font-bold text-[var(--color-primary)] mb-1.5 opacity-70">{customerName}</div>
             {cart.map(i => (
               <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5 tabular-nums">
                 <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
@@ -351,7 +352,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           )}
 
           {payModal === 'tab' && (
-            <p className="text-[12px] text-[var(--color-muted)] mb-3">Pesanan akan disimpan sebagai tab terbuka. Bayar nanti dari tab Pesanan.</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-3">Pesanan disimpan sebagai orderan terbuka. Bayar nanti dari tab Pesanan.</p>
           )}
 
           <button
@@ -360,7 +361,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             className={`w-full py-2.5 rounded-lg text-[13px] font-bold text-white mb-1.5 disabled:opacity-50 transition-colors
               ${payModal === 'bayar' ? 'bg-[var(--color-success)] hover:bg-[#1f6440]' : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-mid)]'}`}
           >
-            {loading ? 'Menyimpan...' : payModal === 'tab' ? '📌 Simpan Tab' : '✅ Konfirmasi Bayar'}
+            {loading ? 'Menyimpan...' : payModal === 'tab' ? '📌 Simpan Orderan Terbuka' : '✅ Konfirmasi Bayar'}
           </button>
           <button onClick={() => { setPayModal(null); setPaidAmount('') }} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
