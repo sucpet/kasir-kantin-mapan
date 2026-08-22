@@ -23,6 +23,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [loading, setLoading] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
+  const [nameError, setNameError] = useState(false)
 
   useEffect(() => {
     fetchMenu()
@@ -78,6 +79,14 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   function clearCart() {
     setCart([])
     setCustomerName('')
+    setNameError(false)
+  }
+
+  function openPayModal(mode: 'bayar' | 'tab') {
+    if (!cart.length) return
+    if (!customerName.trim()) { setNameError(true); onToast('Nama / meja wajib diisi'); return }
+    setNameError(false)
+    setPayModal(mode)
   }
 
   const total = orderSum(cart)
@@ -214,9 +223,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           </div>
           <input
             value={customerName}
-            onChange={e => setCustomerName(e.target.value)}
-            placeholder="Nama / meja pelanggan (opsional)"
-            className="w-full px-3 py-1.5 text-[12px] border-[1.5px] border-[var(--color-border)] rounded-lg outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)]"
+            onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setNameError(false) }}
+            placeholder="Nama / no. meja (wajib)"
+            className={`w-full px-3 py-1.5 text-[12px] border-[1.5px] rounded-lg outline-none placeholder:text-[var(--color-muted)] transition-colors
+              ${nameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
           />
         </div>
 
@@ -254,10 +264,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Total</span>
             <span className="text-[20px] font-extrabold tabular-nums">{rp(total)}</span>
           </div>
-          <button onClick={() => setPayModal('bayar')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] bg-[var(--color-success)] text-white text-[13px] font-bold mb-1.5 disabled:opacity-40 hover:bg-[#1f6440] transition-colors">
+          <button onClick={() => openPayModal('bayar')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] bg-[var(--color-success)] text-white text-[13px] font-bold mb-1.5 disabled:opacity-40 hover:bg-[#1f6440] transition-colors">
             ✅ Bayar Sekarang
           </button>
-          <button onClick={() => setPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
+          <button onClick={() => openPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
             📌 Simpan Tab
           </button>
         </div>
@@ -310,6 +320,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             {payModal === 'tab' ? '📌 Simpan Tab' : '💳 Pembayaran'}
           </h2>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
+            <div className="text-[11px] font-bold text-[var(--color-primary)] mb-1.5 opacity-70">{customerName}</div>
             {cart.map(i => (
               <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5 tabular-nums">
                 <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
@@ -318,12 +329,6 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
               <span>TOTAL</span><span>{rp(total)}</span>
             </div>
-          </div>
-
-          <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama / Meja Pelanggan</label>
-            <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Tamu"
-              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]" />
           </div>
 
           {payModal === 'bayar' && (
