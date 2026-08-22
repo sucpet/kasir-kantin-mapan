@@ -1,9 +1,15 @@
+export interface MenuOption {
+  name: string
+  choices: string[]
+}
+
 export interface MenuItem {
   id: string
   name: string
   price: number
   category: string
   available: boolean
+  options: MenuOption[]
   created_at: string
 }
 
@@ -30,6 +36,7 @@ export interface Order {
 
 export interface CartItem {
   menuId: string
+  cartKey: string
   name: string
   price: number
   qty: number

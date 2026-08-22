@@ -10,6 +10,7 @@ create table public.menu_items (
   price integer not null,
   category text not null default 'Lainnya',
   available boolean not null default true,
+  options jsonb not null default '[]',
   created_at timestamptz default now()
 );
 
@@ -50,6 +51,11 @@ alter table public.order_items enable row level security;
 create policy "public_all" on public.menu_items for all using (true) with check (true);
 create policy "public_all" on public.orders for all using (true) with check (true);
 create policy "public_all" on public.order_items for all using (true) with check (true);
+
+-- ============================================================
+-- Migration: jalankan ini jika tabel menu_items sudah ada
+-- ============================================================
+-- alter table public.menu_items add column if not exists options jsonb not null default '[]';
 
 -- ============================================================
 -- Seed data contoh (opsional, hapus jika tidak diperlukan)

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Minus, Plus, Trash2 } from 'lucide-react'
+import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
 import { rp, orderSum } from '@/lib/utils'
@@ -21,6 +21,8 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [paidAmount, setPaidAmount] = useState('')
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
+  const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
+  const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetchMenu()
@@ -45,16 +47,30 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
   function addToCart(item: MenuItem) {
     if (!item.available) return
+    const opts = item.options ?? []
+    if (opts.length > 0) {
+      setPendingOpts({})
+      setOptionItem(item)
+    } else {
+      doAddToCart(item, {})
+    }
+  }
+
+  function doAddToCart(item: MenuItem, opts: Record<string, string>) {
+    const variantStr = Object.values(opts).filter(Boolean).join(', ')
+    const displayName = variantStr ? `${item.name} (${variantStr})` : item.name
+    const cartKey = variantStr ? `${item.id}::${variantStr}` : item.id
+
     setCart(prev => {
-      const ex = prev.find(c => c.menuId === item.id)
-      if (ex) return prev.map(c => c.menuId === item.id ? { ...c, qty: c.qty + 1 } : c)
-      return [...prev, { menuId: item.id, name: item.name, price: item.price, qty: 1 }]
+      const ex = prev.find(c => c.cartKey === cartKey)
+      if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c)
+      return [...prev, { menuId: item.id, cartKey, name: displayName, price: item.price, qty: 1 }]
     })
   }
 
-  function adjustQty(menuId: string, delta: number) {
+  function adjustQty(cartKey: string, delta: number) {
     setCart(prev => {
-      const updated = prev.map(c => c.menuId === menuId ? { ...c, qty: c.qty + delta } : c)
+      const updated = prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + delta } : c)
       return updated.filter(c => c.qty > 0)
     })
   }
@@ -130,6 +146,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     window.print()
   }
 
+  const allOptsSelected = optionItem
+    ? (optionItem.options ?? []).every(g => pendingOpts[g.name])
+    : false
+
   return (
     <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
       {/* Menu panel */}
@@ -175,6 +195,9 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
               <span className="text-[12px] font-bold leading-tight">{item.name}</span>
               <span className="text-[12px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</span>
               <span className="text-[10px] text-[var(--color-muted)]">{item.category}</span>
+              {(item.options ?? []).length > 0 && (
+                <span className="text-[9px] text-[var(--color-primary)] font-semibold opacity-70">▾ ada pilihan</span>
+              )}
             </button>
           ))}
         </div>
@@ -205,7 +228,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.menuId} className="flex items-start gap-2 py-2.5 border-b border-[var(--color-border-lt)]">
+              <div key={item.cartKey} className="flex items-start gap-2 py-2.5 border-b border-[var(--color-border-lt)]">
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-semibold leading-tight">{item.name}</div>
                   <div className="text-[11px] text-[var(--color-muted)] tabular-nums mt-0.5">
@@ -213,11 +236,11 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button onClick={() => adjustQty(item.menuId, -1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
+                  <button onClick={() => adjustQty(item.cartKey, -1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
                     <Minus size={10} strokeWidth={3} />
                   </button>
                   <span className="text-[13px] font-extrabold min-w-[18px] text-center tabular-nums">{item.qty}</span>
-                  <button onClick={() => adjustQty(item.menuId, 1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
+                  <button onClick={() => adjustQty(item.cartKey, 1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
                     <Plus size={10} strokeWidth={3} />
                   </button>
                 </div>
@@ -240,6 +263,46 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         </div>
       </div>
 
+      {/* Option selection modal */}
+      {optionItem && (
+        <Modal onClose={() => setOptionItem(null)}>
+          <h2 className="text-[16px] font-extrabold text-center mb-1">{optionItem.name}</h2>
+          <p className="text-center text-[12px] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
+          {(optionItem.options ?? []).map((group, gi) => (
+            <div key={gi} className="mb-4">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
+                {group.name} *
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {group.choices.map(choice => (
+                  <button
+                    key={choice}
+                    onClick={() => setPendingOpts(prev => ({ ...prev, [group.name]: choice }))}
+                    className={`px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] transition-all
+                      ${pendingOpts[group.name] === choice
+                        ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                        : 'bg-white border-[var(--color-border)] text-[#1C2420] hover:border-[var(--color-primary)]'
+                      }`}
+                  >
+                    {choice}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => { doAddToCart(optionItem, pendingOpts); setOptionItem(null) }}
+            disabled={!allOptsSelected}
+            className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-40 hover:bg-[var(--color-primary-mid)] transition-colors"
+          >
+            ➕ Tambah ke Pesanan
+          </button>
+          <button onClick={() => setOptionItem(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[#1C2420] transition-colors">
+            Batal
+          </button>
+        </Modal>
+      )}
+
       {/* Payment modal */}
       {payModal && (
         <Modal onClose={() => { setPayModal(null); setPaidAmount('') }}>
@@ -248,7 +311,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           </h2>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
             {cart.map(i => (
-              <div key={i.menuId} className="flex justify-between text-[12px] py-0.5 tabular-nums">
+              <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5 tabular-nums">
                 <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
               </div>
             ))}
