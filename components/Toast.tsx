@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface ToastProps {
   message: string
@@ -8,12 +8,14 @@ interface ToastProps {
 
 export function Toast({ message, onDone }: ToastProps) {
   const [visible, setVisible] = useState(true)
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
 
   useEffect(() => {
     const t1 = setTimeout(() => setVisible(false), 1900)
-    const t2 = setTimeout(onDone, 2200)
+    const t2 = setTimeout(() => onDoneRef.current(), 2200)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [onDone])
+  }, []) // intentionally empty — timers hanya jalan sekali saat mount
 
   return (
     <div
