@@ -33,7 +33,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
 
   function openNew() {
     setEditorItem('new')
-    setForm({ name: '', price: '', category: categories[0] ?? '', newCat: '' })
+    setForm({ name: '', price: '', category: categories.length > 0 ? categories[0] : '__new__', newCat: '' })
     setFormOpts([])
     setShowEditor(true)
   }
