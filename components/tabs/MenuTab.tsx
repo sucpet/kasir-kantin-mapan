@@ -18,7 +18,9 @@ export default function MenuTab({ onToast }: MenuTabProps) {
   const [categories, setCategories] = useState<string[]>([])
   const [editorItem, setEditorItem] = useState<MenuItem | null | 'new'>('new')
   const [showEditor, setShowEditor] = useState(false)
-  const [form, setForm] = useState({ name: '', price: '', category: '', newCat: '' })
+  const [form, setForm] = useState({ name: '', price: '', category: '', newCat: '', imageUrl: '' })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
   const [formOpts, setFormOpts] = useState<FormOpt[]>([])
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -35,16 +37,33 @@ export default function MenuTab({ onToast }: MenuTabProps) {
 
   function openNew() {
     setEditorItem('new')
-    setForm({ name: '', price: '', category: categories.length > 0 ? categories[0] : '__new__', newCat: '' })
+    setForm({ name: '', price: '', category: categories.length > 0 ? categories[0] : '__new__', newCat: '', imageUrl: '' })
+    setImageFile(null)
+    setImagePreview('')
     setFormOpts([])
     setShowEditor(true)
   }
 
   function openEdit(item: MenuItem) {
     setEditorItem(item)
-    setForm({ name: item.name, price: String(item.price), category: item.category, newCat: '' })
+    setForm({ name: item.name, price: String(item.price), category: item.category, newCat: '', imageUrl: item.image_url ?? '' })
+    setImageFile(null)
+    setImagePreview(item.image_url ?? '')
     setFormOpts((item.options ?? []).map(o => ({ ...o, newChoice: '' })))
     setShowEditor(true)
+  }
+
+  function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  function removeImage() {
+    setImageFile(null)
+    setImagePreview('')
+    setForm(f => ({ ...f, imageUrl: '' }))
   }
 
   async function toggleAvail(item: MenuItem) {
@@ -99,12 +118,28 @@ export default function MenuTab({ onToast }: MenuTabProps) {
       .map(g => ({ name: g.name.trim(), choices: g.choices }))
 
     setSaving(true)
+
+    let finalImageUrl: string | null = form.imageUrl || null
+    if (imageFile) {
+      const ext = imageFile.name.split('.').pop() ?? 'jpg'
+      const path = `public/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('menu-images')
+        .upload(path, imageFile, { contentType: imageFile.type })
+      if (upErr) {
+        onToast('Gagal upload foto')
+        setSaving(false)
+        return
+      }
+      finalImageUrl = supabase.storage.from('menu-images').getPublicUrl(path).data.publicUrl
+    }
+
     if (editorItem === 'new' || editorItem === null) {
-      const { error } = await supabase.from('menu_items').insert({ name, price, category: cat, available: true, options })
+      const { error } = await supabase.from('menu_items').insert({ name, price, category: cat, available: true, options, image_url: finalImageUrl })
       if (error) { onToast('Gagal menyimpan'); setSaving(false); return }
       onToast('Menu ditambahkan!')
     } else {
-      const { error } = await supabase.from('menu_items').update({ name, price, category: cat, options }).eq('id', editorItem.id)
+      const { error } = await supabase.from('menu_items').update({ name, price, category: cat, options, image_url: finalImageUrl }).eq('id', editorItem.id)
       if (error) { onToast('Gagal menyimpan'); setSaving(false); return }
       onToast('Menu diperbarui!')
     }
@@ -146,6 +181,11 @@ export default function MenuTab({ onToast }: MenuTabProps) {
         )}
         {filtered.map(item => (
           <div key={item.id} className={`bg-white border-[1.5px] border-[var(--color-border)] rounded-[10px] px-3.5 py-2.5 flex items-center gap-3 shadow-[0_1px_2px_rgba(20,35,25,0.08)] transition-opacity ${!item.available ? 'opacity-50' : ''}`}>
+            {item.image_url ? (
+              <img src={item.image_url} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-[var(--color-border)]" />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] flex items-center justify-center text-[16px] flex-shrink-0">🍽️</div>
+            )}
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-bold">{item.name}</div>
               <div className="text-[11px] text-[var(--color-muted)]">{item.category}
@@ -207,6 +247,29 @@ export default function MenuTab({ onToast }: MenuTabProps) {
                 className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]" />
             </div>
           )}
+
+          {/* Foto menu */}
+          <div className="mb-3">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Foto (opsional)</label>
+            {imagePreview ? (
+              <div className="relative">
+                <img src={imagePreview} alt="" className="w-full h-32 object-cover rounded-xl border border-[var(--color-border)]" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-24 border-[1.5px] border-dashed border-[var(--color-border)] rounded-xl cursor-pointer hover:border-[var(--color-primary)] transition-colors bg-[var(--color-surface2)]">
+                <span className="text-2xl mb-1">📷</span>
+                <span className="text-[11px] text-[var(--color-muted)] font-medium">Klik untuk pilih foto</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+              </label>
+            )}
+          </div>
 
           {/* Pilihan / Varian */}
           <div className="mb-4">

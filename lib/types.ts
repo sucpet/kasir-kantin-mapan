@@ -10,6 +10,7 @@ export interface MenuItem {
   category: string
   available: boolean
   options: MenuOption[]
+  image_url: string | null
   created_at: string
 }
 

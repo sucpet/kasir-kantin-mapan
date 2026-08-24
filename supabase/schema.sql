@@ -59,6 +59,15 @@ create policy "public_all" on public.order_items for all using (true) with check
 -- alter table public.order_items add column if not exists note text;
 -- alter table public.orders add column if not exists payment_method text;
 -- alter table public.orders add column if not exists source text not null default 'kasir';
+-- alter table public.menu_items add column if not exists image_url text;
+
+-- ============================================================
+-- Storage: buat bucket "menu-images" (Public) di Supabase Dashboard
+-- lalu jalankan policy ini di SQL Editor:
+-- ============================================================
+-- insert into storage.buckets (id, name, public) values ('menu-images', 'menu-images', true);
+-- create policy "public read" on storage.objects for select using (bucket_id = 'menu-images');
+-- create policy "auth upload" on storage.objects for insert with check (bucket_id = 'menu-images');
 
 -- ============================================================
 -- Seed data contoh (opsional, hapus jika tidak diperlukan)

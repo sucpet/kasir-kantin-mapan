@@ -165,11 +165,18 @@ export default function OrderPage() {
             const inCart = cartItem && (item.options ?? []).length === 0 ? cartItem.qty : 0
             return (
               <div key={item.id}
-                className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-[12px] p-3 flex flex-col gap-2">
+                className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-[12px] overflow-hidden flex flex-col">
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.name} className="w-full h-28 object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-full h-28 bg-[var(--color-surface2)] flex items-center justify-center flex-shrink-0 text-3xl">
+                    🍽️
+                  </div>
+                )}
+                <div className="p-3 flex flex-col gap-2 flex-1">
                 <div>
                   <div className="text-[13px] font-bold leading-tight text-[var(--color-text)]">{item.name}</div>
-                  <div className="text-[11px] text-[var(--color-muted)] mt-0.5">{item.category}</div>
-                  <div className="text-[14px] font-extrabold text-[var(--color-primary)] tabular-nums mt-1">{rp(item.price)}</div>
+                  <div className="text-[14px] font-extrabold text-[var(--color-primary)] tabular-nums mt-0.5">{rp(item.price)}</div>
                   {(item.options ?? []).length > 0 && (
                     <div className="text-[9px] text-[var(--color-primary)] font-semibold mt-0.5 opacity-70">ada pilihan ▾</div>
                   )}
@@ -192,6 +199,7 @@ export default function OrderPage() {
                     {cart.some(c => c.menuId === item.id) ? '+ Tambah Lagi' : '+ Tambah'}
                   </button>
                 )}
+                </div>
               </div>
             )
           })}
