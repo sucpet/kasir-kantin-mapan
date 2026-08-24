@@ -176,14 +176,15 @@ export default function OrderPage() {
                     🍽️
                   </div>
                 )}
-                <div className="p-3 flex flex-col gap-2 flex-1">
-                <div>
+                <div className="p-3 flex flex-col flex-1">
+                <div className="flex-1">
                   <div className="text-[13px] font-bold leading-tight text-[var(--color-text)]">{item.name}</div>
                   <div className="text-[14px] font-extrabold text-[var(--color-primary)] tabular-nums mt-0.5">{rp(item.price)}</div>
                   {(item.options ?? []).length > 0 && (
                     <div className="text-[9px] text-[var(--color-primary)] font-semibold mt-0.5 opacity-70">ada pilihan ▾</div>
                   )}
                 </div>
+                <div className="mt-2">
                 {inCart > 0 ? (
                   <div className="flex items-center justify-between">
                     <button onClick={() => adjustQty(item.id, -1)}
@@ -202,6 +203,7 @@ export default function OrderPage() {
                     {cart.some(c => c.menuId === item.id) ? '+ Tambah Lagi' : '+ Tambah'}
                   </button>
                 )}
+                </div>
                 </div>
               </div>
             )
