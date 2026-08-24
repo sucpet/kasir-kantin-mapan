@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Sun, Moon, QrCode } from 'lucide-react'
+import { LogOut, Sun, Moon, QrCode, Settings } from 'lucide-react'
 import KasirTab from './tabs/KasirTab'
 import PesananTab from './tabs/PesananTab'
 import MenuTab from './tabs/MenuTab'
@@ -9,6 +9,7 @@ import RekapTab from './tabs/RekapTab'
 import { useToast } from './Toast'
 import { supabase } from '@/lib/supabase'
 import QRModal from './QRModal'
+import SettingsModal from './SettingsModal'
 
 type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap'
 
@@ -28,6 +29,7 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('')
   const [isLight, setIsLight] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const { show: toast, node: toastNode } = useToast()
 
   useEffect(() => {
@@ -104,6 +106,13 @@ export default function App() {
             <div className="text-[10px] opacity-50 truncate max-w-[140px]">{userEmail}</div>
           </div>
           <button
+            onClick={() => setShowSettings(true)}
+            title="Pengaturan"
+            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <Settings size={14} />
+          </button>
+          <button
             onClick={() => setShowQR(true)}
             title="QR Pesan Mandiri"
             className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
@@ -161,6 +170,7 @@ export default function App() {
 
       {toastNode}
       {showQR && <QRModal onClose={() => setShowQR(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onToast={toast} />}
     </div>
   )
 }

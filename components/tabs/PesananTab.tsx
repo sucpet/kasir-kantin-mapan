@@ -155,7 +155,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                     </div>
                   </div>
                   <div className="flex gap-2 px-3.5 py-2 border-t border-[var(--color-border-lt)]">
-                    <button onClick={() => { setSettleModal(order); setPaidAmount('') }}
+                    <button onClick={() => { setSettleModal(order); setPaidAmount(''); setPaymentMethod(order.payment_method ?? ''); setPayMethodError(false) }}
                       className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-success)] rounded-lg hover:bg-[#1f6440] transition-colors">
                       💳 Bayar
                     </button>

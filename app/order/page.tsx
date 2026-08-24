@@ -26,12 +26,18 @@ export default function OrderPage() {
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [qrisImageUrl, setQrisImageUrl] = useState('')
+  const [lastOrderName, setLastOrderName] = useState('')
+  const [lastOrderTotal, setLastOrderTotal] = useState(0)
+  const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     const t = p.get('table')
     if (t) setCustomerName(t)
     loadMenu()
+    supabase.from('settings').select('value').eq('key', 'qris_image_url').maybeSingle()
+      .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
   async function loadMenu() {
@@ -93,7 +99,7 @@ export default function OrderPage() {
         total,
         paid_amount: null,
         paid_at: null,
-        payment_method: null,
+        payment_method: qrisImageUrl ? 'QRIS' : null,
         source: 'customer',
       })
       .select()
@@ -109,6 +115,9 @@ export default function OrderPage() {
         note: c.note || null,
       }))
     )
+    setLastOrderName(customerName.trim())
+    setLastOrderTotal(total)
+    setLastOrderItems([...cart])
     setLoading(false)
     setCart([])
     setShowCart(false)
@@ -117,18 +126,59 @@ export default function OrderPage() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-6 text-center">
-        <div className="text-6xl mb-4">✅</div>
-        <h1 className="text-[22px] font-extrabold mb-2 text-[var(--color-text)]">Pesanan Diterima!</h1>
-        <p className="text-[14px] text-[var(--color-muted)] mb-6 max-w-[260px]">
-          Pesananmu sudah masuk dan sedang diproses. Silakan tunggu ya!
-        </p>
-        <button
-          onClick={() => setSubmitted(false)}
-          className="px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl text-[14px] font-bold"
-        >
-          Pesan Lagi
-        </button>
+      <main className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+        <header className="bg-[var(--color-primary)] text-white px-4 py-3 flex-shrink-0">
+          <div className="text-[10px] font-medium tracking-[0.08em] uppercase opacity-60">Pesan Mandiri</div>
+          <div className="text-[18px] font-extrabold">Kasir Kantin Mapan</div>
+        </header>
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-sm mx-auto p-5 pb-10">
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-3">✅</div>
+              <h1 className="text-[20px] font-extrabold text-[var(--color-text)]">Pesanan Diterima!</h1>
+              <p className="text-[13px] text-[var(--color-primary)] font-bold mt-0.5">{lastOrderName}</p>
+            </div>
+
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-5">
+              {lastOrderItems.map(i => (
+                <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5">
+                  <span className="text-[var(--color-text)]">{i.name} ×{i.qty}</span>
+                  <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[15px] font-extrabold mt-2.5 pt-2.5 border-t border-[var(--color-border)]">
+                <span className="text-[var(--color-text)]">Total</span>
+                <span className="tabular-nums text-[var(--color-primary)]">{rp(lastOrderTotal)}</span>
+              </div>
+            </div>
+
+            {qrisImageUrl ? (
+              <>
+                <div className="text-center mb-3">
+                  <p className="text-[12px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Bayar via QRIS</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 border border-[var(--color-border)] mb-3">
+                  <img src={qrisImageUrl} alt="QRIS" className="w-full max-w-[220px] object-contain mx-auto block" />
+                </div>
+                <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-3.5 mb-5 text-center">
+                  <p className="text-[12px] text-[var(--color-text)] font-semibold">Scan QR di atas dengan aplikasi pembayaranmu</p>
+                  <p className="text-[11px] text-[var(--color-muted)] mt-1">Setelah membayar, tunjukkan bukti bayar ke kasir</p>
+                </div>
+              </>
+            ) : (
+              <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-4 mb-5 text-center">
+                <p className="text-[13px] text-[var(--color-text)] font-semibold">Silakan bayar ke kasir 👋</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => { setSubmitted(false); setCustomerName('') }}
+              className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold hover:bg-[var(--color-primary-light)] transition-colors"
+            >
+              Pesan Lagi
+            </button>
+          </div>
+        </div>
       </main>
     )
   }
