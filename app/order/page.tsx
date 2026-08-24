@@ -141,24 +141,27 @@ export default function OrderPage() {
         <div className="text-[18px] font-extrabold">Kasir Kantin Mapan</div>
       </header>
 
-      {/* Category bar */}
-      <div
-        className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-3 py-2 flex gap-2 flex-shrink-0"
-        style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
-      >
-        {['Semua', ...categories].map(c => (
-          <button key={c} onClick={() => setActiveCat(c)}
-            className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border-[1.5px] flex-shrink-0 transition-all
-              ${activeCat === c
-                ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
-                : 'border-[var(--color-border)] text-[var(--color-muted)]'}`}>
-            {c}
-          </button>
-        ))}
+      {/* Category bar — full-width bg, content centered */}
+      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
+        <div
+          className="max-w-2xl mx-auto px-3 py-2 flex gap-2"
+          style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
+        >
+          {['Semua', ...categories].map(c => (
+            <button key={c} onClick={() => setActiveCat(c)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border-[1.5px] flex-shrink-0 transition-all
+                ${activeCat === c
+                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                  : 'border-[var(--color-border)] text-[var(--color-muted)]'}`}>
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Menu grid */}
-      <div className="flex-1 overflow-y-auto p-3 pb-24">
+      {/* Menu grid — constrained width on desktop */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto p-3 pb-24">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {filtered.map(item => {
             const cartItem = cart.find(c => c.menuId === item.id)
@@ -167,9 +170,9 @@ export default function OrderPage() {
               <div key={item.id}
                 className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-[12px] overflow-hidden flex flex-col">
                 {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} className="w-full h-28 object-cover flex-shrink-0" />
+                  <img src={item.image_url} alt={item.name} className="w-full aspect-[4/3] object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-full h-28 bg-[var(--color-surface2)] flex items-center justify-center flex-shrink-0 text-3xl">
+                  <div className="w-full aspect-[4/3] bg-[var(--color-surface2)] flex items-center justify-center flex-shrink-0 text-3xl">
                     🍽️
                   </div>
                 )}
@@ -203,6 +206,7 @@ export default function OrderPage() {
               </div>
             )
           })}
+        </div>
         </div>
       </div>
 
