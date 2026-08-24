@@ -33,6 +33,7 @@ export interface Order {
   created_at: string
   paid_at: string | null
   payment_method: string | null
+  source: 'kasir' | 'customer'
   order_items?: OrderItem[]
 }
 

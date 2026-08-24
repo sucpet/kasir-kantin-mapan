@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Sun, Moon } from 'lucide-react'
+import { LogOut, Sun, Moon, QrCode } from 'lucide-react'
 import KasirTab from './tabs/KasirTab'
 import PesananTab from './tabs/PesananTab'
 import MenuTab from './tabs/MenuTab'
 import RekapTab from './tabs/RekapTab'
 import { useToast } from './Toast'
 import { supabase } from '@/lib/supabase'
+import QRModal from './QRModal'
 
 type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap'
 
@@ -26,6 +27,7 @@ export default function App() {
   const [time, setTime] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [isLight, setIsLight] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const { show: toast, node: toastNode } = useToast()
 
   useEffect(() => {
@@ -102,6 +104,13 @@ export default function App() {
             <div className="text-[10px] opacity-50 truncate max-w-[140px]">{userEmail}</div>
           </div>
           <button
+            onClick={() => setShowQR(true)}
+            title="QR Pesan Mandiri"
+            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <QrCode size={14} />
+          </button>
+          <button
             onClick={toggleTheme}
             title={isLight ? 'Mode Gelap' : 'Mode Terang'}
             className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
@@ -151,6 +160,7 @@ export default function App() {
       </div>
 
       {toastNode}
+      {showQR && <QRModal onClose={() => setShowQR(false)} />}
     </div>
   )
 }

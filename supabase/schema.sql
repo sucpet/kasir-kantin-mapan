@@ -58,6 +58,7 @@ create policy "public_all" on public.order_items for all using (true) with check
 -- alter table public.menu_items add column if not exists options jsonb not null default '[]';
 -- alter table public.order_items add column if not exists note text;
 -- alter table public.orders add column if not exists payment_method text;
+-- alter table public.orders add column if not exists source text not null default 'kasir';
 
 -- ============================================================
 -- Seed data contoh (opsional, hapus jika tidak diperlukan)

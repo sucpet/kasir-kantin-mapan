@@ -128,6 +128,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         paid_amount: mode === 'bayar' ? (Number(paidAmount) || total) : null,
         paid_at: mode === 'bayar' ? new Date().toISOString() : null,
         payment_method: mode === 'bayar' ? paymentMethod : null,
+        source: 'kasir',
       })
       .select()
       .single()
