@@ -119,7 +119,7 @@ export default function OrderPage() {
     setLastOrderName(customerName.trim())
     setLastOrderTotal(total)
     setLastOrderItems([...cart])
-    setPaymentSuffix(300 + Math.floor(Math.random() * 100))
+    setPaymentSuffix(Math.floor(Math.random() * 400))
     setLoading(false)
     setCart([])
     setShowCart(false)
