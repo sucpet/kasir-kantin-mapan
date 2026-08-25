@@ -165,7 +165,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
           if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
 
           return (
-            <div key={order.id} className={`border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
+            <div key={order.id} className={`shrink-0 border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
               <div
                 className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:brightness-[0.97] transition-all"
                 onClick={() => setExpanded(isExp ? null : order.id)}
