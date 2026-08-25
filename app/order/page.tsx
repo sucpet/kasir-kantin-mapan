@@ -16,6 +16,35 @@ type CartItem = {
 
 type Customer = { name: string; points: number }
 
+const SESSION_KEY = 'kantin_order_session'
+const SESSION_TTL = 5 * 60 * 1000
+
+type StoredSession = { phone: string; name: string; points: number; loginAt: number }
+
+function getStoredSession(): StoredSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const s: StoredSession = JSON.parse(raw)
+    if (Date.now() - s.loginAt >= SESSION_TTL) {
+      sessionStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return s
+  } catch { return null }
+}
+
+function saveSession(phone: string, customer: Customer) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+    phone, name: customer.name, points: customer.points, loginAt: Date.now(),
+  }))
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY)
+}
+
 export default function OrderPage() {
   const [menu, setMenu] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -24,7 +53,7 @@ export default function OrderPage() {
   const [showCart, setShowCart] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
-  const [customerName, setCustomerName] = useState('')
+  const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -36,7 +65,7 @@ export default function OrderPage() {
   const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
   const [paymentSuffix, setPaymentSuffix] = useState(0)
   // Auth
-  const [authStep, setAuthStep] = useState<'login' | 'register' | 'done'>('login')
+  const [authStep, setAuthStep] = useState<'login' | 'register' | 'done'>(() => getStoredSession() ? 'done' : 'login')
   const [loginPhone, setLoginPhone] = useState('')
   const [loginError, setLoginError] = useState('')
   const [registerName, setRegisterName] = useState('')
@@ -44,8 +73,11 @@ export default function OrderPage() {
   const [registerError, setRegisterError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   // Loyalty points
-  const [phone, setPhone] = useState('')
-  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [phone, setPhone] = useState(() => getStoredSession()?.phone ?? '')
+  const [customer, setCustomer] = useState<Customer | null>(() => {
+    const s = getStoredSession()
+    return s ? { name: s.name, points: s.points } : null
+  })
   const [redeemAmt, setRedeemAmt] = useState(0)
   const [lastPointsEarned, setLastPointsEarned] = useState(0)
   const [lastPointsTotal, setLastPointsTotal] = useState(0)
@@ -64,6 +96,7 @@ export default function OrderPage() {
   useEffect(() => {
     if (authStep !== 'done') return
     const timer = setTimeout(() => {
+      clearSession()
       setAuthStep('login')
       setPhone('')
       setCustomer(null)
@@ -72,7 +105,7 @@ export default function OrderPage() {
       setCart([])
       setSubmitted(false)
       setCustomerName('')
-    }, 5 * 60 * 1000)
+    }, SESSION_TTL)
     return () => clearTimeout(timer)
   }, [authStep])
 
@@ -97,6 +130,7 @@ export default function OrderPage() {
       setPhone(norm)
       setCustomer(data)
       setCustomerName(data.name)
+      saveSession(norm, data)
       setAuthStep('done')
     } else {
       setRegisterPhone(norm)
@@ -115,9 +149,11 @@ export default function OrderPage() {
     const { error } = await supabase.from('customers').insert({ phone: norm, name: registerName.trim(), points: 0 })
     setAuthLoading(false)
     if (error) { setRegisterError('Nomor sudah terdaftar atau terjadi kesalahan'); return }
+    const newCustomer = { name: registerName.trim(), points: 0 }
     setPhone(norm)
-    setCustomer({ name: registerName.trim(), points: 0 })
+    setCustomer(newCustomer)
     setCustomerName(registerName.trim())
+    saveSession(norm, newCustomer)
     setAuthStep('done')
   }
 
@@ -196,7 +232,11 @@ export default function OrderPage() {
       net_total: number; suffix: number; new_points: number
     }
 
-    if (phone) setCustomer({ name: customerName.trim(), points: new_points })
+    if (phone) {
+      const updated = { name: customerName.trim(), points: new_points }
+      setCustomer(updated)
+      saveSession(phone, updated)
+    }
 
     setLastOrderName(customerName.trim())
     setLastOriginalTotal(original_total)
