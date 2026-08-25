@@ -61,6 +61,10 @@ create policy "public_all" on public.order_items for all using (true) with check
 -- alter table public.orders add column if not exists source text not null default 'kasir';
 -- alter table public.menu_items add column if not exists image_url text;
 
+-- Migration: tambah status 'done' (sudah bayar & sudah disajikan)
+-- alter table public.orders drop constraint orders_status_check;
+-- alter table public.orders add constraint orders_status_check check (status in ('open', 'paid', 'done'));
+
 -- Settings table (key-value untuk konfigurasi app seperti QRIS)
 -- create table public.settings (key text primary key, value text);
 -- create policy "public_all" on public.settings for all using (true) with check (true);

@@ -12,6 +12,8 @@ interface PesananTabProps {
   onOrderSettled: () => void
 }
 
+const STATUS_PRIORITY: Record<string, number> = { open: 0, paid: 1, done: 2 }
+
 export default function PesananTab({ onToast, refreshKey, onOrderSettled }: PesananTabProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -30,9 +32,13 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
       .from('orders')
       .select('*, order_items(*)')
       .gte('created_at', todayStart.toISOString())
-      .order('status', { ascending: true })   // 'open' sebelum 'paid'
       .order('created_at', { ascending: false })
-    if (data) setOrders(data)
+    if (data) {
+      const sorted = [...data].sort(
+        (a, b) => (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99)
+      )
+      setOrders(sorted)
+    }
   }, [])
 
   useEffect(() => { fetchOrders() }, [fetchOrders, refreshKey])
@@ -81,6 +87,19 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     setReceiptOrder({ ...order, status: 'paid', paid_amount: paid })
   }
 
+  async function confirmDone(order: Order) {
+    setLoading(true)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'done' })
+      .eq('id', order.id)
+    if (error) { onToast('Gagal memperbarui status'); setLoading(false); return }
+    fetchOrders()
+    setExpanded(null)
+    setLoading(false)
+    onToast('Pesanan selesai disajikan ✓')
+  }
+
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
     let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\n${line}\n`
@@ -90,7 +109,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
       r += `  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n`
     })
     r += `${line}\nTOTAL     : ${rp(o.total)}\n`
-    if (o.status === 'paid') {
+    if (o.status === 'paid' || o.status === 'done') {
       r += `BAYAR     : ${rp(o.paid_amount ?? o.total)}\nKEMBALI   : ${rp(Math.max(0, (o.paid_amount ?? o.total) - o.total))}\n`
       if (o.payment_method) r += `METODE    : ${o.payment_method}\n`
     } else {
@@ -108,13 +127,21 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
   const change = settleModal ? Math.max(0, Number(paidAmount) - settleModal.total) : 0
 
+  const countOpen = orders.filter(o => o.status === 'open').length
+  const countPaid = orders.filter(o => o.status === 'paid').length
+  const countDone = orders.filter(o => o.status === 'done').length
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="bg-white border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between flex-shrink-0">
         <span className="text-[14px] font-extrabold">Pesanan Hari Ini</span>
         <span className="text-[12px] text-[var(--color-muted)]">
-          {orders.filter(o => o.status === 'open').length} terbuka
-          {orders.some(o => o.status === 'paid') && ` · ${orders.filter(o => o.status === 'paid').length} lunas`}
+          {countOpen > 0 && `${countOpen} terbuka`}
+          {countOpen > 0 && countPaid > 0 && ' · '}
+          {countPaid > 0 && `${countPaid} dimasak`}
+          {(countOpen > 0 || countPaid > 0) && countDone > 0 && ' · '}
+          {countDone > 0 && `${countDone} selesai`}
+          {countOpen === 0 && countPaid === 0 && countDone === 0 && 'kosong'}
         </span>
       </div>
 
@@ -128,58 +155,73 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
         {orders.map(order => {
           const isExp = expanded === order.id
+          const isOpen = order.status === 'open'
           const isPaid = order.status === 'paid'
+          const isDone = order.status === 'done'
           const itemCount = order.order_items?.reduce((s, i) => s + i.qty, 0) ?? 0
+
+          let cardBg = 'bg-white border-[var(--color-border)]'
+          if (isPaid) cardBg = 'bg-[#EFF6FF] border-[#BFDBFE]'
+          if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
+
           return (
-            <div key={order.id} className={`border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${isPaid ? 'bg-[var(--color-surface2)] border-[var(--color-border)]' : 'bg-white border-[var(--color-border)]'}`}>
+            <div key={order.id} className={`border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
               <div
-                className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:bg-[var(--color-surface2)] transition-colors"
+                className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:bg-black/[0.03] transition-colors"
                 onClick={() => setExpanded(isExp ? null : order.id)}
               >
                 <div className="flex-1">
-                  <div className={`text-[14px] font-bold ${isPaid ? 'text-[var(--color-muted)]' : ''}`}>👤 {order.customer_name}</div>
+                  <div className={`text-[14px] font-bold ${isDone ? 'text-[var(--color-muted)]' : ''}`}>👤 {order.customer_name}</div>
                   <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
                     {fmtTime(order.created_at)} · {itemCount} item
-                    {isPaid && order.payment_method && ` · ${order.payment_method}`}
+                    {(isPaid || isDone) && order.payment_method && ` · ${order.payment_method}`}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-[14px] font-extrabold tabular-nums ${isPaid ? 'text-[var(--color-muted)]' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
-                  {isPaid
-                    ? <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Lunas</span>
-                    : <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>
-                  }
+                  <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-blue-600' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
+                  {isOpen && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
+                  {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🍳 Sedang Dimasak</span>}
+                  {isDone && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Selesai</span>}
                 </div>
                 <ChevronDown size={14} className={`text-[var(--color-muted)] transition-transform ${isExp ? 'rotate-180' : ''}`} />
               </div>
 
               {isExp && (
                 <>
-                  <div className="border-t border-[var(--color-border-lt)] bg-[var(--color-surface2)] px-3.5 py-2.5">
+                  <div className="border-t border-[var(--color-border-lt)] bg-black/[0.02] px-3.5 py-2.5">
                     {order.order_items?.map(i => (
                       <div key={i.id} className="flex justify-between text-[12px] py-0.5">
-                        <span>{i.name} ×{i.qty}</span>
+                        <span>
+                          {i.name} ×{i.qty}
+                          {i.note && <span className="text-[var(--color-muted)] italic"> · {i.note}</span>}
+                        </span>
                         <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
                       </div>
                     ))}
                     <div className="flex justify-between text-[13px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)]">
                       <span>Total</span><span>{rp(order.total)}</span>
                     </div>
-                    {isPaid && order.paid_amount != null && (
+                    {(isPaid || isDone) && order.paid_amount != null && (
                       <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-0.5">
                         <span>Dibayar</span><span className="tabular-nums">{rp(order.paid_amount)}</span>
                       </div>
                     )}
                   </div>
                   <div className="flex gap-2 px-3.5 py-2 border-t border-[var(--color-border-lt)]">
-                    {!isPaid && (
+                    {isOpen && (
                       <button onClick={() => { setSettleModal(order); setPaidAmount(''); setPaymentMethod(order.payment_method ?? ''); setPayMethodError(false) }}
                         className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-success)] rounded-lg hover:bg-[#1f6440] transition-colors">
                         💳 Bayar
                       </button>
                     )}
+                    {isPaid && (
+                      <button onClick={() => confirmDone(order)} disabled={loading}
+                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                        ✅ Selesai Disajikan
+                      </button>
+                    )}
                     <button onClick={() => setReceiptOrder(order)}
-                      className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${isPaid ? 'flex-1' : 'px-3'}`}>
+                      className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${(isPaid || isDone) ? 'flex-1' : 'px-3'}`}>
                       🖨️ Print
                     </button>
                   </div>

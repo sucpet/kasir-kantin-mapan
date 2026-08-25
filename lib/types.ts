@@ -27,7 +27,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   customer_name: string
-  status: 'open' | 'paid'
+  status: 'open' | 'paid' | 'done'
   total: number
   paid_amount: number | null
   note: string | null
