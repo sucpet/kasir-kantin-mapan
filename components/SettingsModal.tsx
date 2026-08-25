@@ -33,10 +33,10 @@ export default function SettingsModal({ onClose, onToast }: Props) {
     if (!qrisFile) { onClose(); return }
     setSaving(true)
     const ext = qrisFile.name.split('.').pop() ?? 'png'
-    const path = `qris/code.${ext}`
+    const path = `public/qris-${crypto.randomUUID()}.${ext}`
     const { error } = await supabase.storage
       .from('menu-images')
-      .upload(path, qrisFile, { upsert: true, contentType: qrisFile.type })
+      .upload(path, qrisFile, { contentType: qrisFile.type })
     if (error) { onToast('Gagal upload QRIS'); setSaving(false); return }
     const url = supabase.storage.from('menu-images').getPublicUrl(path).data.publicUrl
     await supabase.from('settings').upsert({ key: 'qris_image_url', value: url })
