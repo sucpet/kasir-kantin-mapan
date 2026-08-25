@@ -114,7 +114,8 @@ create policy "public_all" on public.order_items for all using (true) with check
 --   end if;
 --
 --   v_net_total := v_original_total - v_safe_redeem;
---   v_suffix    := floor(random() * 400)::integer;
+--   -- Tidak ada kode unik jika customer menukar poin
+--   v_suffix    := case when v_safe_redeem > 0 then 0 else floor(random() * 400)::integer end;
 --
 --   -- Buat order
 --   insert into public.orders (customer_name, status, total, payment_method, source, customer_phone)

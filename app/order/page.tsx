@@ -383,11 +383,13 @@ export default function OrderPage() {
                 )}
                 {qrisImageUrl && (
                   <>
-                    <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-1">
-                      <span>Kode unik</span>
-                      <span className="tabular-nums">+{rp(paymentSuffix)}</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-[var(--color-border)]">
+                    {paymentSuffix > 0 && (
+                      <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-1">
+                        <span>Kode unik</span>
+                        <span className="tabular-nums">+{rp(paymentSuffix)}</span>
+                      </div>
+                    )}
+                    <div className={`flex justify-between items-center mt-1.5 pt-1.5 border-t border-[var(--color-border)]`}>
                       <span className="text-[13px] font-bold text-[var(--color-text)]">Nominal Transfer</span>
                       <span className="text-[20px] font-extrabold tabular-nums text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span>
                     </div>
@@ -421,10 +423,12 @@ export default function OrderPage() {
             {lastHadPhone && (
               <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4">
                 <p className="text-[12px] font-extrabold text-[var(--color-text)] mb-2">🎁 Poin Kamu</p>
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-[var(--color-muted)]">Poin diperoleh</span>
-                  <span className="tabular-nums font-bold text-[var(--color-primary)]">+{lastPointsEarned.toLocaleString('id')} poin</span>
-                </div>
+                {lastPointsEarned > 0 && (
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-[var(--color-muted)]">Poin diperoleh</span>
+                    <span className="tabular-nums font-bold text-[var(--color-primary)]">+{lastPointsEarned.toLocaleString('id')} poin</span>
+                  </div>
+                )}
                 {lastSafeRedeem > 0 && (
                   <div className="flex justify-between text-[12px] mt-0.5">
                     <span className="text-[var(--color-muted)]">Poin ditukar</span>
@@ -674,16 +678,13 @@ export default function OrderPage() {
 
             <div className="mb-4">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
-                Nama / No. Meja *
+                Nama
               </label>
               <input
                 value={customerName}
-                onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setNameError(false) }}
-                placeholder="cth: Meja 3 atau nama kamu"
-                className={`w-full px-3 py-2.5 border-[1.5px] rounded-xl text-[13px] outline-none transition-colors bg-transparent text-[var(--color-text)]
-                  ${nameError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+                disabled
+                className="w-full px-3 py-2.5 border-[1.5px] rounded-xl text-[13px] bg-transparent text-[var(--color-text)] border-[var(--color-border)] opacity-60 cursor-not-allowed"
               />
-              {nameError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Nama / meja wajib diisi</p>}
             </div>
 
             <button onClick={submitOrder} disabled={loading}
