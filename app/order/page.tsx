@@ -30,6 +30,8 @@ export default function OrderPage() {
   const [submitted, setSubmitted] = useState(false)
   const [qrisImageUrl, setQrisImageUrl] = useState('')
   const [lastOrderName, setLastOrderName] = useState('')
+  const [lastOriginalTotal, setLastOriginalTotal] = useState(0)
+  const [lastSafeRedeem, setLastSafeRedeem] = useState(0)
   const [lastOrderTotal, setLastOrderTotal] = useState(0)
   const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
   const [paymentSuffix, setPaymentSuffix] = useState(0)
@@ -173,57 +175,38 @@ export default function OrderPage() {
     if (!customerName.trim()) { setNameError(true); return }
     setLoading(true)
 
-    const normalizedPhone = phone.replace(/\D/g, '')
-    const suffix = Math.floor(Math.random() * 400)
-    const safeRedeem = Math.min(redeemAmt, customer?.points ?? 0, total)
-    const netTotal = total - safeRedeem
-
-    const { data: order, error } = await supabase
-      .from('orders')
-      .insert({
-        customer_name: customerName.trim(),
-        status: 'open',
-        total: netTotal,
-        paid_amount: null,
-        paid_at: null,
-        payment_method: qrisImageUrl ? 'QRIS' : null,
-        source: 'customer',
-        customer_phone: normalizedPhone || null,
-      })
-      .select()
-      .single()
-    if (error || !order) { setLoading(false); return }
-
-    await supabase.from('order_items').insert(
-      cart.map(c => ({
-        order_id: order.id,
+    const { data, error } = await supabase.rpc('create_order', {
+      p_customer_name:  customerName.trim(),
+      p_customer_phone: phone || null,
+      p_payment_method: qrisImageUrl ? 'QRIS' : null,
+      p_source:         'customer',
+      p_redeem_points:  redeemAmt,
+      p_items: cart.map(c => ({
         menu_item_id: c.menuId,
-        name: c.name,
-        price: c.price,
-        qty: c.qty,
-        note: c.note || null,
-      }))
-    )
+        qty:          c.qty,
+        note:         c.note || '',
+        display_name: c.name,
+      })),
+    })
 
-    // Update loyalty points
-    let newPoints = 0
-    if (normalizedPhone) {
-      const base = customer?.points ?? 0
-      newPoints = base - safeRedeem + suffix
-      await supabase.from('customers').upsert(
-        { phone: normalizedPhone, name: customerName.trim(), points: newPoints },
-        { onConflict: 'phone' }
-      )
-      setCustomer({ name: customerName.trim(), points: newPoints })
+    if (error || !data) { setLoading(false); return }
+
+    const { original_total, safe_redeem, net_total, suffix, new_points } = data as {
+      order_id: string; original_total: number; safe_redeem: number
+      net_total: number; suffix: number; new_points: number
     }
 
+    if (phone) setCustomer({ name: customerName.trim(), points: new_points })
+
     setLastOrderName(customerName.trim())
-    setLastOrderTotal(netTotal)
+    setLastOriginalTotal(original_total)
+    setLastSafeRedeem(safe_redeem)
+    setLastOrderTotal(net_total)
     setLastOrderItems([...cart])
     setPaymentSuffix(suffix)
     setLastPointsEarned(suffix)
-    setLastPointsTotal(newPoints)
-    setLastHadPhone(!!normalizedPhone)
+    setLastPointsTotal(new_points)
+    setLastHadPhone(!!phone)
     setLoading(false)
     setCart([])
     setRedeemAmt(0)
@@ -368,23 +351,49 @@ export default function OrderPage() {
               <p className="text-[13px] text-[var(--color-primary)] font-bold mt-0.5">{lastOrderName}</p>
             </div>
 
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-5">
+            {/* Order summary */}
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4">
               {lastOrderItems.map(i => (
                 <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5">
                   <span className="text-[var(--color-text)]">{i.name} ×{i.qty}</span>
                   <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
                 </div>
               ))}
-              <div className="flex justify-between text-[15px] font-extrabold mt-2.5 pt-2.5 border-t border-[var(--color-border)]">
-                <span className="text-[var(--color-text)]">Total</span>
-                <span className="tabular-nums text-[var(--color-primary)]">{rp(lastOrderTotal)}</span>
+              <div className="mt-2.5 pt-2.5 border-t border-[var(--color-border)]">
+                {lastSafeRedeem > 0 ? (
+                  <>
+                    <div className="flex justify-between text-[13px] font-semibold text-[var(--color-muted)]">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums">{rp(lastOriginalTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-[12px] mt-0.5">
+                      <span className="text-[var(--color-muted)]">Poin ditukar ({lastSafeRedeem.toLocaleString('id')} poin)</span>
+                      <span className="tabular-nums font-semibold text-[var(--color-accent-text)]">−{rp(lastSafeRedeem)}</span>
+                    </div>
+                    <div className="flex justify-between text-[15px] font-extrabold mt-1.5 pt-1.5 border-t border-dashed border-[var(--color-border)]">
+                      <span className="text-[var(--color-text)]">Total Bayar</span>
+                      <span className="tabular-nums text-[var(--color-primary)]">{rp(lastOrderTotal)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-[15px] font-extrabold">
+                    <span className="text-[var(--color-text)]">Total Bayar</span>
+                    <span className="tabular-nums text-[var(--color-primary)]">{rp(lastOrderTotal)}</span>
+                  </div>
+                )}
+                {qrisImageUrl && (
+                  <>
+                    <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-1">
+                      <span>Kode unik</span>
+                      <span className="tabular-nums">+{rp(paymentSuffix)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-[var(--color-border)]">
+                      <span className="text-[13px] font-bold text-[var(--color-text)]">Nominal Transfer</span>
+                      <span className="text-[20px] font-extrabold tabular-nums text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span>
+                    </div>
+                  </>
+                )}
               </div>
-              {qrisImageUrl && (
-                <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-dashed border-[var(--color-border)]">
-                  <span className="text-[11px] text-[var(--color-muted)]">Nominal transfer</span>
-                  <span className="text-[16px] font-extrabold tabular-nums text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span>
-                </div>
-              )}
             </div>
 
             {qrisImageUrl ? (
@@ -395,7 +404,7 @@ export default function OrderPage() {
                 <div className="bg-white rounded-2xl p-4 border border-[var(--color-border)] mb-3">
                   <img src={qrisImageUrl} alt="QRIS" className="w-full max-w-[220px] object-contain mx-auto block" />
                 </div>
-                <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-3.5 mb-5 text-center">
+                <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4 text-center">
                   <p className="text-[12px] text-[var(--color-text)] font-semibold">Scan QR di atas dengan aplikasi pembayaranmu</p>
                   <p className="text-[11px] text-[var(--color-muted)] mt-1">
                     Bayar tepat <span className="font-bold text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span> agar kasir bisa konfirmasi pesananmu
@@ -403,18 +412,29 @@ export default function OrderPage() {
                 </div>
               </>
             ) : (
-              <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-4 mb-5 text-center">
+              <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-4 mb-4 text-center">
                 <p className="text-[13px] text-[var(--color-text)] font-semibold">Silakan bayar ke kasir 👋</p>
               </div>
             )}
 
+            {/* Points summary */}
             {lastHadPhone && (
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4 text-center">
-                <p className="text-2xl mb-1">🎁</p>
-                <p className="text-[13px] font-extrabold text-[var(--color-text)]">+{lastPointsEarned.toLocaleString('id')} poin diperoleh!</p>
-                <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
-                  Total poin kamu: <span className="font-bold text-[var(--color-primary)]">{lastPointsTotal.toLocaleString('id')} poin</span>
-                </p>
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4">
+                <p className="text-[12px] font-extrabold text-[var(--color-text)] mb-2">🎁 Poin Kamu</p>
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-[var(--color-muted)]">Poin diperoleh</span>
+                  <span className="tabular-nums font-bold text-[var(--color-primary)]">+{lastPointsEarned.toLocaleString('id')} poin</span>
+                </div>
+                {lastSafeRedeem > 0 && (
+                  <div className="flex justify-between text-[12px] mt-0.5">
+                    <span className="text-[var(--color-muted)]">Poin ditukar</span>
+                    <span className="tabular-nums font-bold text-[var(--color-accent-text)]">−{lastSafeRedeem.toLocaleString('id')} poin</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[13px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)]">
+                  <span className="text-[var(--color-text)]">Total poin</span>
+                  <span className="tabular-nums text-[var(--color-primary)]">{lastPointsTotal.toLocaleString('id')} poin</span>
+                </div>
               </div>
             )}
             <button

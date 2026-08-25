@@ -77,6 +77,82 @@ create policy "public_all" on public.order_items for all using (true) with check
 -- alter table public.orders add column if not exists customer_phone text;
 
 -- ============================================================
+-- RPC: create_order — server-side total calculation (anti-tamper)
+-- Jalankan ini di SQL Editor setelah tabel customers & orders ada
+-- ============================================================
+-- create or replace function public.create_order(
+--   p_customer_name  text,
+--   p_customer_phone text,
+--   p_payment_method text,
+--   p_source         text,
+--   p_redeem_points  integer,
+--   p_items          jsonb
+-- ) returns jsonb language plpgsql security definer as $$
+-- declare
+--   v_order_id        uuid;
+--   v_original_total  integer;
+--   v_customer_points integer := 0;
+--   v_safe_redeem     integer := 0;
+--   v_net_total       integer;
+--   v_suffix          integer;
+--   v_new_points      integer := 0;
+-- begin
+--   -- Hitung total dari harga di server (bukan dari client)
+--   select coalesce(sum(m.price * (item->>'qty')::integer), 0)
+--     into v_original_total
+--     from jsonb_array_elements(p_items) as item
+--     join public.menu_items m on m.id = (item->>'menu_item_id')::uuid
+--    where m.available = true;
+--
+--   -- Ambil poin customer dari DB, validasi redemption
+--   if p_customer_phone is not null then
+--     select coalesce(points, 0) into v_customer_points
+--       from public.customers where phone = p_customer_phone;
+--     if p_redeem_points > 0 then
+--       v_safe_redeem := least(p_redeem_points, v_customer_points, v_original_total);
+--     end if;
+--   end if;
+--
+--   v_net_total := v_original_total - v_safe_redeem;
+--   v_suffix    := floor(random() * 400)::integer;
+--
+--   -- Buat order
+--   insert into public.orders (customer_name, status, total, payment_method, source, customer_phone)
+--   values (p_customer_name, 'open', v_net_total, p_payment_method, p_source, p_customer_phone)
+--   returning id into v_order_id;
+--
+--   -- Buat order_items dengan harga dari server; display_name untuk varian
+--   insert into public.order_items (order_id, menu_item_id, name, price, qty, note)
+--   select
+--     v_order_id,
+--     m.id,
+--     coalesce(nullif(trim(item->>'display_name'), ''), m.name),
+--     m.price,
+--     (item->>'qty')::integer,
+--     nullif(trim(item->>'note'), '')
+--   from jsonb_array_elements(p_items) as item
+--   join public.menu_items m on m.id = (item->>'menu_item_id')::uuid;
+--
+--   -- Update poin customer
+--   if p_customer_phone is not null then
+--     v_new_points := v_customer_points - v_safe_redeem + v_suffix;
+--     update public.customers set points = v_new_points, name = p_customer_name
+--      where phone = p_customer_phone;
+--   end if;
+--
+--   return jsonb_build_object(
+--     'order_id',       v_order_id,
+--     'original_total', v_original_total,
+--     'safe_redeem',    v_safe_redeem,
+--     'net_total',      v_net_total,
+--     'suffix',         v_suffix,
+--     'new_points',     v_new_points
+--   );
+-- end;
+-- $$;
+-- grant execute on function public.create_order to anon, authenticated;
+
+-- ============================================================
 -- Storage: buat bucket "menu-images" (Public) di Supabase Dashboard
 -- lalu jalankan policy ini di SQL Editor:
 -- ============================================================
