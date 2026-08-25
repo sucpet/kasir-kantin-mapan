@@ -146,7 +146,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       }))
     )
 
-    clearCart()
+    doClearCart()
     setPayModal(null)
     setPaidAmount('')
     setLoading(false)
