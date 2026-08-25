@@ -58,6 +58,22 @@ export default function OrderPage() {
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
+  // Session expires 5 minutes after login — show login screen again, no page reload
+  useEffect(() => {
+    if (authStep !== 'done') return
+    const timer = setTimeout(() => {
+      setAuthStep('login')
+      setPhone('')
+      setCustomer(null)
+      setLoginPhone('')
+      setRedeemAmt(0)
+      setCart([])
+      setSubmitted(false)
+      setCustomerName('')
+    }, 5 * 60 * 1000)
+    return () => clearTimeout(timer)
+  }, [authStep])
+
   function normalizePhone(raw: string): string {
     let d = raw.replace(/\D/g, '')
     if (d.startsWith('62')) d = '0' + d.slice(2)
@@ -198,6 +214,7 @@ export default function OrderPage() {
         { phone: normalizedPhone, name: customerName.trim(), points: newPoints },
         { onConflict: 'phone' }
       )
+      setCustomer({ name: customerName.trim(), points: newPoints })
     }
 
     setLastOrderName(customerName.trim())
