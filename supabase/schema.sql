@@ -65,6 +65,17 @@ create policy "public_all" on public.order_items for all using (true) with check
 -- create table public.settings (key text primary key, value text);
 -- create policy "public_all" on public.settings for all using (true) with check (true);
 
+-- Customers & loyalty points
+-- create table public.customers (
+--   id uuid primary key default gen_random_uuid(),
+--   phone text unique not null,
+--   name text not null default '',
+--   points integer not null default 0,
+--   created_at timestamptz default now()
+-- );
+-- create policy "public_all" on public.customers for all using (true) with check (true);
+-- alter table public.orders add column if not exists customer_phone text;
+
 -- ============================================================
 -- Storage: buat bucket "menu-images" (Public) di Supabase Dashboard
 -- lalu jalankan policy ini di SQL Editor:

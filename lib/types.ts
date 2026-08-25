@@ -35,6 +35,7 @@ export interface Order {
   paid_at: string | null
   payment_method: string | null
   source: 'kasir' | 'customer'
+  customer_phone: string | null
   order_items?: OrderItem[]
 }
 
