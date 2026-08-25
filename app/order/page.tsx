@@ -30,6 +30,7 @@ export default function OrderPage() {
   const [lastOrderName, setLastOrderName] = useState('')
   const [lastOrderTotal, setLastOrderTotal] = useState(0)
   const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
+  const [paymentSuffix, setPaymentSuffix] = useState(0)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -118,6 +119,7 @@ export default function OrderPage() {
     setLastOrderName(customerName.trim())
     setLastOrderTotal(total)
     setLastOrderItems([...cart])
+    setPaymentSuffix(300 + Math.floor(Math.random() * 100))
     setLoading(false)
     setCart([])
     setShowCart(false)
@@ -150,6 +152,12 @@ export default function OrderPage() {
                 <span className="text-[var(--color-text)]">Total</span>
                 <span className="tabular-nums text-[var(--color-primary)]">{rp(lastOrderTotal)}</span>
               </div>
+              {qrisImageUrl && (
+                <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-dashed border-[var(--color-border)]">
+                  <span className="text-[11px] text-[var(--color-muted)]">Nominal transfer</span>
+                  <span className="text-[16px] font-extrabold tabular-nums text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span>
+                </div>
+              )}
             </div>
 
             {qrisImageUrl ? (
@@ -162,7 +170,9 @@ export default function OrderPage() {
                 </div>
                 <div className="bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl p-3.5 mb-5 text-center">
                   <p className="text-[12px] text-[var(--color-text)] font-semibold">Scan QR di atas dengan aplikasi pembayaranmu</p>
-                  <p className="text-[11px] text-[var(--color-muted)] mt-1">Setelah membayar, tunjukkan bukti bayar ke kasir</p>
+                  <p className="text-[11px] text-[var(--color-muted)] mt-1">
+                    Bayar tepat <span className="font-bold text-[var(--color-accent-text)]">{rp(lastOrderTotal + paymentSuffix)}</span> agar kasir bisa konfirmasi pesananmu
+                  </p>
                 </div>
               </>
             ) : (
