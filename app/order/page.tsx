@@ -35,12 +35,14 @@ export default function OrderPage() {
   const [paymentSuffix, setPaymentSuffix] = useState(0)
   // Loyalty points
   const [phone, setPhone] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [phoneLoading, setPhoneLoading] = useState(false)
   const [redeemAmt, setRedeemAmt] = useState(0)
   const [lastPointsEarned, setLastPointsEarned] = useState(0)
   const [lastPointsTotal, setLastPointsTotal] = useState(0)
   const [lastHadPhone, setLastHadPhone] = useState(false)
+  const [showPhoneModal, setShowPhoneModal] = useState(true)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -51,23 +53,27 @@ export default function OrderPage() {
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
-  // Phone lookup with debounce
+  // Phone lookup when confirmed via modal
   useEffect(() => {
-    const normalized = phone.replace(/\D/g, '')
-    if (normalized.length < 8) { setCustomer(null); return }
+    if (!phone) { setCustomer(null); return }
     setPhoneLoading(true)
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from('customers')
-        .select('name, points')
-        .eq('phone', normalized)
-        .maybeSingle()
-      setCustomer(data)
-      if (data?.name && !customerName) setCustomerName(data.name)
-      setPhoneLoading(false)
-    }, 500)
-    return () => { clearTimeout(timer); setPhoneLoading(false) }
+    supabase
+      .from('customers')
+      .select('name, points')
+      .eq('phone', phone)
+      .maybeSingle()
+      .then(({ data }) => {
+        setCustomer(data)
+        if (data?.name && !customerName) setCustomerName(data.name)
+        setPhoneLoading(false)
+      })
   }, [phone])
+
+  function confirmPhone() {
+    const normalized = phoneInput.replace(/\D/g, '')
+    if (normalized.length >= 8) setPhone(normalized)
+    setShowPhoneModal(false)
+  }
 
   async function loadMenu() {
     const { data } = await supabase
@@ -245,7 +251,7 @@ export default function OrderPage() {
               </div>
             )}
             <button
-              onClick={() => { setSubmitted(false); setCustomerName(''); setPhone(''); setCustomer(null); setRedeemAmt(0) }}
+              onClick={() => { setSubmitted(false); setCustomerName(''); setRedeemAmt(0) }}
               className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold hover:bg-[var(--color-primary-light)] transition-colors"
             >
               Pesan Lagi
@@ -263,6 +269,29 @@ export default function OrderPage() {
         <div className="text-[10px] font-medium tracking-[0.08em] uppercase opacity-60">Pesan Mandiri</div>
         <div className="text-[18px] font-extrabold">Kasir Kantin Mapan</div>
       </header>
+
+      {/* Loyalty info bar */}
+      {phone && (
+        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-2 flex items-center justify-between flex-shrink-0">
+          {phoneLoading ? (
+            <span className="text-[12px] text-[var(--color-muted)]">Memuat poin...</span>
+          ) : customer ? (
+            <>
+              <span className="text-[12px] text-[var(--color-text)]">
+                👋 <span className="font-bold">{customer.name || phone}</span>
+              </span>
+              <span className="text-[12px] font-extrabold text-[var(--color-primary)]">
+                {customer.points.toLocaleString('id')} poin
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-[12px] text-[var(--color-muted)]">📱 {phone}</span>
+              <span className="text-[11px] text-[var(--color-muted)]">Pelanggan baru</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Category bar — full-width bg, content centered */}
       <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
@@ -439,61 +468,35 @@ export default function OrderPage() {
               </div>
             </div>
 
-            {/* Phone / WA number for loyalty */}
-            <div className="mb-3">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
-                No. WhatsApp <span className="font-normal normal-case">(opsional — untuk poin)</span>
-              </label>
-              <div className="relative">
-                <input
-                  value={phone}
-                  onChange={e => { setPhone(e.target.value); setRedeemAmt(0) }}
-                  placeholder="cth: 08123456789"
-                  type="tel"
-                  inputMode="numeric"
-                  className="w-full px-3 py-2.5 border-[1.5px] rounded-xl text-[13px] outline-none transition-colors bg-transparent text-[var(--color-text)] border-[var(--color-border)] focus:border-[var(--color-primary)]"
-                />
-                {phoneLoading && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-                )}
-              </div>
-              {customer && (
-                <div className="mt-2 p-2.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
-                  <p className="text-[12px] font-bold text-[var(--color-text)]">Halo, {customer.name || 'Pelanggan'}! 👋</p>
-                  <p className="text-[12px] text-[var(--color-muted)] mt-0.5">
-                    Poin kamu: <span className="font-extrabold text-[var(--color-primary)]">{customer.points.toLocaleString('id')} poin</span>
-                  </p>
-                  {customer.points > 0 && (
-                    <div className="mt-2">
-                      <label className="text-[11px] text-[var(--color-muted)] font-semibold">
-                        Gunakan poin (maks {Math.min(customer.points, total).toLocaleString('id')}):
-                      </label>
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="number"
-                          min={0}
-                          max={Math.min(customer.points, total)}
-                          value={redeemAmt || ''}
-                          onChange={e => setRedeemAmt(Math.min(Number(e.target.value) || 0, customer.points, total))}
-                          placeholder="0"
-                          className="flex-1 px-3 py-1.5 border-[1.5px] rounded-lg text-[13px] outline-none transition-colors bg-transparent text-[var(--color-text)] border-[var(--color-border)] focus:border-[var(--color-primary)] tabular-nums"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setRedeemAmt(Math.min(customer.points, total))}
-                          className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
-                        >
-                          Pakai Semua
-                        </button>
-                      </div>
-                    </div>
-                  )}
+            {/* Redemption (only shown if customer has points) */}
+            {customer && customer.points > 0 && (
+              <div className="mb-3 p-3 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
+                <p className="text-[12px] font-bold text-[var(--color-text)] mb-1.5">
+                  🎁 Poin kamu: <span className="text-[var(--color-primary)]">{customer.points.toLocaleString('id')} poin</span>
+                </p>
+                <label className="text-[11px] text-[var(--color-muted)] font-semibold">
+                  Gunakan poin (maks {Math.min(customer.points, total).toLocaleString('id')}):
+                </label>
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={Math.min(customer.points, total)}
+                    value={redeemAmt || ''}
+                    onChange={e => setRedeemAmt(Math.min(Number(e.target.value) || 0, customer.points, total))}
+                    placeholder="0"
+                    className="flex-1 px-3 py-1.5 border-[1.5px] rounded-lg text-[13px] outline-none transition-colors bg-transparent text-[var(--color-text)] border-[var(--color-border)] focus:border-[var(--color-primary)] tabular-nums"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRedeemAmt(Math.min(customer.points, total))}
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
+                  >
+                    Pakai Semua
+                  </button>
                 </div>
-              )}
-              {phone.replace(/\D/g, '').length >= 8 && !customer && !phoneLoading && (
-                <p className="text-[11px] text-[var(--color-muted)] mt-1">Nomor baru — poin akan mulai dikumpulkan</p>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
@@ -516,6 +519,44 @@ export default function OrderPage() {
             <button onClick={() => setShowCart(false)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[13px] font-semibold text-[var(--color-muted)]">
               Kembali ke Menu
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* WA phone entry modal — shown on first load */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
+          <div className="w-full max-w-sm bg-[var(--color-surface)] rounded-2xl p-6 shadow-2xl">
+            <div className="text-center mb-5">
+              <div className="text-4xl mb-2">📱</div>
+              <h2 className="text-[17px] font-extrabold text-[var(--color-text)]">Masuk dengan WA</h2>
+              <p className="text-[12px] text-[var(--color-muted)] mt-1">
+                Nomor WA dipakai untuk mengumpulkan dan menukar poin
+              </p>
+            </div>
+            <input
+              autoFocus
+              type="tel"
+              inputMode="numeric"
+              value={phoneInput}
+              onChange={e => setPhoneInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && confirmPhone()}
+              placeholder="cth: 08123456789"
+              className="w-full px-4 py-3 border-[1.5px] rounded-xl text-[14px] outline-none transition-colors bg-transparent text-[var(--color-text)] border-[var(--color-border)] focus:border-[var(--color-primary)] mb-3"
+            />
+            <button
+              onClick={confirmPhone}
+              disabled={phoneInput.replace(/\D/g, '').length < 8}
+              className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[14px] font-bold mb-2 disabled:opacity-40"
+            >
+              Lanjut
+            </button>
+            <button
+              onClick={() => setShowPhoneModal(false)}
+              className="w-full py-2.5 rounded-xl bg-transparent text-[13px] text-[var(--color-muted)] font-semibold hover:text-[var(--color-text)] transition-colors"
+            >
+              Lewati (tanpa poin)
             </button>
           </div>
         </div>
