@@ -349,7 +349,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             {payModal === 'tab' ? '📌 Orderan Terbuka' : '💳 Bayar Sekarang'}
           </h2>
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama / No. Meja *</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama *</label>
             <input
               autoFocus
               value={customerName}
@@ -358,7 +358,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
               className={`w-full px-3 py-2 border-[1.5px] rounded-lg text-[13px] outline-none transition-colors
                 ${modalNameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
             />
-            {modalNameError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Nama / meja wajib diisi</p>}
+            {modalNameError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Nama wajib diisi</p>}
           </div>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
             {cart.map(i => (
