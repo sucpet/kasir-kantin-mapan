@@ -16,6 +16,8 @@
   --color-success-light: #122419;
   --color-danger: #D45C45;
   --color-danger-light: #2A1510;
+  --color-info: #5B9BD5;
+  --color-info-light: #132035;
 
   /* Surfaces */
   --color-bg: #111A13;
@@ -44,6 +46,8 @@ html.light {
   --color-success-light: #DFF2E9;
   --color-danger: #C44B35;
   --color-danger-light: #FAEAE6;
+  --color-info: #1D6FEB;
+  --color-info-light: #DBEAFE;
 
   --color-bg: #F0EEE9;
   --color-surface: #FFFFFF;

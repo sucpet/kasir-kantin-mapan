@@ -161,13 +161,13 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
           const itemCount = order.order_items?.reduce((s, i) => s + i.qty, 0) ?? 0
 
           let cardBg = 'bg-white border-[var(--color-border)]'
-          if (isPaid) cardBg = 'bg-[#EFF6FF] border-[#BFDBFE]'
+          if (isPaid) cardBg = 'bg-[var(--color-info-light)] border-[var(--color-info)]'
           if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
 
           return (
             <div key={order.id} className={`border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
               <div
-                className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:bg-black/[0.03] transition-colors"
+                className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:brightness-[0.97] transition-all"
                 onClick={() => setExpanded(isExp ? null : order.id)}
               >
                 <div className="flex-1">
@@ -178,9 +178,9 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-blue-600' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
+                  <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-[var(--color-info)]' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
                   {isOpen && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
-                  {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🍳 Sedang Dimasak</span>}
+                  {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">🍳 Sedang Dimasak</span>}
                   {isDone && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Selesai</span>}
                 </div>
                 <ChevronDown size={14} className={`text-[var(--color-muted)] transition-transform ${isExp ? 'rotate-180' : ''}`} />
@@ -188,7 +188,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
               {isExp && (
                 <>
-                  <div className="border-t border-[var(--color-border-lt)] bg-black/[0.02] px-3.5 py-2.5">
+                  <div className="border-t border-[var(--color-border-lt)] bg-[var(--color-surface2)] px-3.5 py-2.5">
                     {order.order_items?.map(i => (
                       <div key={i.id} className="flex justify-between text-[12px] py-0.5">
                         <span>
@@ -216,7 +216,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                     )}
                     {isPaid && (
                       <button onClick={() => confirmDone(order)} disabled={loading}
-                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
                         ✅ Selesai Disajikan
                       </button>
                     )}
