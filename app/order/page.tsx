@@ -33,16 +33,21 @@ export default function OrderPage() {
   const [lastOrderTotal, setLastOrderTotal] = useState(0)
   const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
   const [paymentSuffix, setPaymentSuffix] = useState(0)
+  // Auth
+  const [authStep, setAuthStep] = useState<'login' | 'register' | 'done'>('login')
+  const [loginPhone, setLoginPhone] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [registerName, setRegisterName] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
+  const [registerError, setRegisterError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   // Loyalty points
   const [phone, setPhone] = useState('')
-  const [phoneInput, setPhoneInput] = useState('')
   const [customer, setCustomer] = useState<Customer | null>(null)
-  const [phoneLoading, setPhoneLoading] = useState(false)
   const [redeemAmt, setRedeemAmt] = useState(0)
   const [lastPointsEarned, setLastPointsEarned] = useState(0)
   const [lastPointsTotal, setLastPointsTotal] = useState(0)
   const [lastHadPhone, setLastHadPhone] = useState(false)
-  const [showPhoneModal, setShowPhoneModal] = useState(true)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -53,26 +58,49 @@ export default function OrderPage() {
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
-  // Phone lookup when confirmed via modal
-  useEffect(() => {
-    if (!phone) { setCustomer(null); return }
-    setPhoneLoading(true)
-    supabase
-      .from('customers')
-      .select('name, points')
-      .eq('phone', phone)
-      .maybeSingle()
-      .then(({ data }) => {
-        setCustomer(data)
-        if (data?.name && !customerName) setCustomerName(data.name)
-        setPhoneLoading(false)
-      })
-  }, [phone])
+  function normalizePhone(raw: string): string {
+    let d = raw.replace(/\D/g, '')
+    if (d.startsWith('62')) d = '0' + d.slice(2)
+    if (d.startsWith('8')) d = '0' + d
+    return d
+  }
 
-  function confirmPhone() {
-    const normalized = phoneInput.replace(/\D/g, '')
-    if (normalized.length >= 8) setPhone(normalized)
-    setShowPhoneModal(false)
+  async function handleLogin() {
+    const norm = normalizePhone(loginPhone)
+    if (!norm.startsWith('08') || norm.length < 10) {
+      setLoginError('Format nomor tidak valid (cth: 08123456789)')
+      return
+    }
+    setAuthLoading(true)
+    setLoginError('')
+    const { data } = await supabase.from('customers').select('name, points').eq('phone', norm).maybeSingle()
+    setAuthLoading(false)
+    if (data) {
+      setPhone(norm)
+      setCustomer(data)
+      setCustomerName(data.name)
+      setAuthStep('done')
+    } else {
+      setRegisterPhone(norm)
+      setRegisterName('')
+      setRegisterError('')
+      setAuthStep('register')
+    }
+  }
+
+  async function handleRegister() {
+    const norm = normalizePhone(registerPhone)
+    if (!registerName.trim()) { setRegisterError('Nama wajib diisi'); return }
+    if (!norm.startsWith('08') || norm.length < 10) { setRegisterError('Format nomor tidak valid (cth: 08123456789)'); return }
+    setAuthLoading(true)
+    setRegisterError('')
+    const { error } = await supabase.from('customers').insert({ phone: norm, name: registerName.trim(), points: 0 })
+    setAuthLoading(false)
+    if (error) { setRegisterError('Nomor sudah terdaftar atau terjadi kesalahan'); return }
+    setPhone(norm)
+    setCustomer({ name: registerName.trim(), points: 0 })
+    setCustomerName(registerName.trim())
+    setAuthStep('done')
   }
 
   async function loadMenu() {
@@ -186,6 +214,128 @@ export default function OrderPage() {
     setSubmitted(true)
   }
 
+  const authHeader = (
+    <header className="bg-[var(--color-primary)] text-white px-4 py-3 flex-shrink-0">
+      <div className="text-[10px] font-medium tracking-[0.08em] uppercase opacity-60">Pesan Mandiri</div>
+      <div className="text-[18px] font-extrabold">Kasir Kantin Mapan</div>
+    </header>
+  )
+
+  if (authStep === 'login') {
+    return (
+      <main className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+        {authHeader}
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">👋</div>
+              <h1 className="text-[22px] font-extrabold text-[var(--color-text)]">Masuk</h1>
+              <p className="text-[13px] text-[var(--color-muted)] mt-1">Masukkan nomor WhatsApp kamu</p>
+            </div>
+            <div className="mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
+                Nomor WhatsApp
+              </label>
+              <input
+                autoFocus
+                type="tel"
+                inputMode="numeric"
+                value={loginPhone}
+                onChange={e => { setLoginPhone(e.target.value); setLoginError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="08123456789"
+                className={`w-full px-4 py-3 border-[1.5px] rounded-xl text-[15px] outline-none transition-colors bg-transparent text-[var(--color-text)]
+                  ${loginError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+              />
+              {loginError && <p className="text-[12px] text-[var(--color-danger)] mt-1.5 font-semibold">{loginError}</p>}
+            </div>
+            <button
+              onClick={handleLogin}
+              disabled={authLoading || loginPhone.length < 5}
+              className="w-full py-3.5 rounded-xl bg-[var(--color-primary)] text-white text-[15px] font-bold mb-3 disabled:opacity-40"
+            >
+              {authLoading ? 'Mencari...' : 'Masuk'}
+            </button>
+            <div className="text-center">
+              <span className="text-[12px] text-[var(--color-muted)]">Belum punya akun? </span>
+              <button
+                onClick={() => { setRegisterPhone(normalizePhone(loginPhone)); setRegisterName(''); setRegisterError(''); setAuthStep('register') }}
+                className="text-[12px] font-bold text-[var(--color-primary)] hover:underline"
+              >
+                Daftar sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (authStep === 'register') {
+    return (
+      <main className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+        {authHeader}
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">📝</div>
+              <h1 className="text-[22px] font-extrabold text-[var(--color-text)]">Daftar</h1>
+              <p className="text-[13px] text-[var(--color-muted)] mt-1">
+                {registerPhone ? `Nomor ${registerPhone} belum terdaftar` : 'Buat akun baru'}
+              </p>
+            </div>
+            <div className="mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
+                Nama
+              </label>
+              <input
+                autoFocus
+                type="text"
+                value={registerName}
+                onChange={e => { setRegisterName(e.target.value); setRegisterError('') }}
+                placeholder="Nama kamu"
+                className={`w-full px-4 py-3 border-[1.5px] rounded-xl text-[15px] outline-none transition-colors bg-transparent text-[var(--color-text)]
+                  ${registerError && !registerName.trim() ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
+                Nomor WhatsApp
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={registerPhone}
+                onChange={e => { setRegisterPhone(e.target.value); setRegisterError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleRegister()}
+                placeholder="08123456789"
+                className={`w-full px-4 py-3 border-[1.5px] rounded-xl text-[15px] outline-none transition-colors bg-transparent text-[var(--color-text)]
+                  ${registerError && registerName.trim() ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+              />
+            </div>
+            {registerError && <p className="text-[12px] text-[var(--color-danger)] mb-2 font-semibold">{registerError}</p>}
+            <button
+              onClick={handleRegister}
+              disabled={authLoading}
+              className="w-full py-3.5 rounded-xl bg-[var(--color-primary)] text-white text-[15px] font-bold mb-3 disabled:opacity-40"
+            >
+              {authLoading ? 'Mendaftarkan...' : 'Daftar'}
+            </button>
+            <div className="text-center">
+              <span className="text-[12px] text-[var(--color-muted)]">Sudah punya akun? </span>
+              <button
+                onClick={() => { setLoginError(''); setAuthStep('login') }}
+                className="text-[12px] font-bold text-[var(--color-primary)] hover:underline"
+              >
+                Masuk
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (submitted) {
     return (
       <main className="flex flex-col min-h-screen bg-[var(--color-bg)]">
@@ -271,27 +421,14 @@ export default function OrderPage() {
       </header>
 
       {/* Loyalty info bar */}
-      {phone && (
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-2 flex items-center justify-between flex-shrink-0">
-          {phoneLoading ? (
-            <span className="text-[12px] text-[var(--color-muted)]">Memuat poin...</span>
-          ) : customer ? (
-            <>
-              <span className="text-[12px] text-[var(--color-text)]">
-                👋 <span className="font-bold">{customer.name || phone}</span>
-              </span>
-              <span className="text-[12px] font-extrabold text-[var(--color-primary)]">
-                {customer.points.toLocaleString('id')} poin
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-[12px] text-[var(--color-muted)]">📱 {phone}</span>
-              <span className="text-[11px] text-[var(--color-muted)]">Pelanggan baru</span>
-            </>
-          )}
-        </div>
-      )}
+      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-2 flex items-center justify-between flex-shrink-0">
+        <span className="text-[12px] text-[var(--color-text)]">
+          👋 <span className="font-bold">{customer?.name || phone}</span>
+        </span>
+        <span className="text-[12px] font-extrabold text-[var(--color-primary)]">
+          {(customer?.points ?? 0).toLocaleString('id')} poin
+        </span>
+      </div>
 
       {/* Category bar — full-width bg, content centered */}
       <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
@@ -524,43 +661,6 @@ export default function OrderPage() {
         </div>
       )}
 
-      {/* WA phone entry modal — shown on first load */}
-      {showPhoneModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
-          <div className="w-full max-w-sm bg-[var(--color-surface)] rounded-2xl p-6 shadow-2xl">
-            <div className="text-center mb-5">
-              <div className="text-4xl mb-2">📱</div>
-              <h2 className="text-[17px] font-extrabold text-[var(--color-text)]">Masuk dengan WA</h2>
-              <p className="text-[12px] text-[var(--color-muted)] mt-1">
-                Nomor WA dipakai untuk mengumpulkan dan menukar poin
-              </p>
-            </div>
-            <input
-              autoFocus
-              type="tel"
-              inputMode="numeric"
-              value={phoneInput}
-              onChange={e => setPhoneInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && confirmPhone()}
-              placeholder="cth: 08123456789"
-              className="w-full px-4 py-3 border-[1.5px] rounded-xl text-[14px] outline-none transition-colors bg-transparent text-[var(--color-text)] border-[var(--color-border)] focus:border-[var(--color-primary)] mb-3"
-            />
-            <button
-              onClick={confirmPhone}
-              disabled={phoneInput.replace(/\D/g, '').length < 8}
-              className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[14px] font-bold mb-2 disabled:opacity-40"
-            >
-              Lanjut
-            </button>
-            <button
-              onClick={() => setShowPhoneModal(false)}
-              className="w-full py-2.5 rounded-xl bg-transparent text-[13px] text-[var(--color-muted)] font-semibold hover:text-[var(--color-text)] transition-colors"
-            >
-              Lewati (tanpa poin)
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   )
 }
