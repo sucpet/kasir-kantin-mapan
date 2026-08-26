@@ -215,7 +215,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                 </button>
               )}
               <button onClick={() => setReceiptOrder(order)}
-                className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${(isPaid || isDone) ? 'flex-1' : 'px-3'}`}>
+                className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${(isPaid || isDone || (isOpen && isMandiri)) ? 'flex-1' : 'px-3'}`}>
                 🖨️ Print
               </button>
             </div>
