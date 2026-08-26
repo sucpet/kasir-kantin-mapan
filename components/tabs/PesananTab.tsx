@@ -48,8 +48,10 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   useEffect(() => {
     if (receiptOrder && printOnOpen.current) {
       printOnOpen.current = false
-      const t = setTimeout(() => doPrint(receiptOrder), 150)
-      return () => clearTimeout(t)
+      if (localStorage.getItem('auto_print') === 'true') {
+        const t = setTimeout(() => doPrint(receiptOrder), 150)
+        return () => clearTimeout(t)
+      }
     }
   }, [receiptOrder])
 

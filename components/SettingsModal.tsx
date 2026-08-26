@@ -12,6 +12,7 @@ export default function SettingsModal({ onClose, onToast }: Props) {
   const [qrisPreview, setQrisPreview] = useState('')
   const [qrisFile, setQrisFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [autoPrint, setAutoPrint] = useState(false)
 
   useEffect(() => {
     supabase
@@ -20,7 +21,15 @@ export default function SettingsModal({ onClose, onToast }: Props) {
       .eq('key', 'qris_image_url')
       .maybeSingle()
       .then(({ data }) => { if (data?.value) setQrisPreview(data.value) })
+    setAutoPrint(localStorage.getItem('auto_print') === 'true')
   }, [])
+
+  function toggleAutoPrint() {
+    const next = !autoPrint
+    setAutoPrint(next)
+    localStorage.setItem('auto_print', String(next))
+    onToast(next ? 'Auto Print diaktifkan 🖨️' : 'Auto Print dimatikan')
+  }
 
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -89,6 +98,21 @@ export default function SettingsModal({ onClose, onToast }: Props) {
             <input type="file" accept="image/*" className="hidden" onChange={handlePick} />
           </label>
         )}
+      </div>
+
+      <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-bold">🖨️ Auto Print Struk</div>
+            <div className="text-[11px] text-[var(--color-muted)] mt-0.5">Aktifkan hanya di perangkat yang terhubung printer</div>
+          </div>
+          <button
+            onClick={toggleAutoPrint}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${autoPrint ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
       </div>
 
       <button onClick={save} disabled={saving || !qrisFile}

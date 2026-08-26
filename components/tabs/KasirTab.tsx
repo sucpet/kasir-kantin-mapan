@@ -39,12 +39,14 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   useEffect(() => {
     if (receiptOrder && printOnOpen.current) {
       printOnOpen.current = false
-      const t = setTimeout(() => {
-        const pz = document.getElementById('print-zone')
-        if (pz) pz.textContent = buildReceipt(receiptOrder)
-        window.print()
-      }, 150)
-      return () => clearTimeout(t)
+      if (localStorage.getItem('auto_print') === 'true') {
+        const t = setTimeout(() => {
+          const pz = document.getElementById('print-zone')
+          if (pz) pz.textContent = buildReceipt(receiptOrder)
+          window.print()
+        }, 150)
+        return () => clearTimeout(t)
+      }
     }
   }, [receiptOrder])
 
