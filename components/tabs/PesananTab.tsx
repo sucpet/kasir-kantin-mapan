@@ -17,6 +17,7 @@ const STATUS_PRIORITY: Record<string, number> = { open: 0, paid: 1, done: 2 }
 export default function PesananTab({ onToast, refreshKey, onOrderSettled }: PesananTabProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [doneCollapsed, setDoneCollapsed] = useState(true)
   const [settleModal, setSettleModal] = useState<Order | null>(null)
   const [paidAmount, setPaidAmount] = useState('')
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
@@ -130,9 +131,99 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
   const change = settleModal ? Math.max(0, Number(paidAmount) - settleModal.total) : 0
 
+  const activeOrders = orders.filter(o => o.status !== 'done')
+  const doneOrders   = orders.filter(o => o.status === 'done')
   const countOpen = orders.filter(o => o.status === 'open').length
   const countPaid = orders.filter(o => o.status === 'paid').length
-  const countDone = orders.filter(o => o.status === 'done').length
+  const countDone = doneOrders.length
+
+  function renderCard(order: Order) {
+    const isExp = expanded === order.id
+    const isOpen = order.status === 'open'
+    const isPaid = order.status === 'paid'
+    const isDone = order.status === 'done'
+    const isMandiri = order.source === 'customer'
+    const itemCount = order.order_items?.reduce((s, i) => s + i.qty, 0) ?? 0
+
+    let cardBg = 'bg-white border-[var(--color-border)]'
+    if (isOpen && isMandiri) cardBg = 'bg-[var(--color-surface)] border-[var(--color-info)]'
+    if (isPaid) cardBg = 'bg-[var(--color-info-light)] border-[var(--color-info)]'
+    if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
+
+    return (
+      <div key={order.id} className={`shrink-0 border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
+        <div
+          className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:brightness-[0.97] transition-all"
+          onClick={() => setExpanded(isExp ? null : order.id)}
+        >
+          <div className="flex-1">
+            <div className={`text-[14px] font-bold ${isDone ? 'text-[var(--color-muted)]' : ''}`}>👤 {order.customer_name}</div>
+            <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
+              {fmtTime(order.created_at)} · {itemCount} item
+              {order.dining_type && ` · ${order.dining_type === 'dibungkus' ? '🥡 Bungkus' : '🍽️ Di Tempat'}`}
+              {(isPaid || isDone) && order.payment_method && ` · ${order.payment_method}`}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-[var(--color-info)]' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
+            {isOpen && !isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
+            {isOpen && isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">📱 Order Mandiri</span>}
+            {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">🍳 Sedang Dimasak</span>}
+            {isDone && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Selesai</span>}
+          </div>
+          <ChevronDown size={14} className={`text-[var(--color-muted)] transition-transform ${isExp ? 'rotate-180' : ''}`} />
+        </div>
+
+        {isExp && (
+          <>
+            <div className="border-t border-[var(--color-border-lt)] bg-[var(--color-surface2)] px-3.5 py-2.5">
+              {order.order_items?.map(i => (
+                <div key={i.id} className="flex justify-between text-[12px] py-0.5">
+                  <span>
+                    {i.name} ×{i.qty}
+                    {i.note && <span className="text-[var(--color-muted)] italic"> · {i.note}</span>}
+                  </span>
+                  <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[13px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)]">
+                <span>Total</span><span>{rp(order.total)}</span>
+              </div>
+              {(isPaid || isDone) && order.paid_amount != null && (
+                <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-0.5">
+                  <span>Dibayar</span><span className="tabular-nums">{rp(order.paid_amount)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 px-3.5 py-2 border-t border-[var(--color-border-lt)]">
+              {isOpen && !isMandiri && (
+                <button onClick={() => { setSettleModal(order); setPaidAmount(''); setPaymentMethod(order.payment_method ?? ''); setPayMethodError(false) }}
+                  className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-success)] rounded-lg hover:bg-[#1f6440] transition-colors">
+                  💳 Bayar
+                </button>
+              )}
+              {isOpen && isMandiri && (
+                <button onClick={() => setSettleModal(order)}
+                  className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity">
+                  ✅ Konfirmasi Pembayaran
+                </button>
+              )}
+              {isPaid && (
+                <button onClick={() => confirmDone(order)} disabled={doneLoading}
+                  className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+                  ✅ Selesai Disajikan
+                </button>
+              )}
+              <button onClick={() => setReceiptOrder(order)}
+                className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${(isPaid || isDone) ? 'flex-1' : 'px-3'}`}>
+                🖨️ Print
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -156,93 +247,23 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
           </div>
         )}
 
-        {orders.map(order => {
-          const isExp = expanded === order.id
-          const isOpen = order.status === 'open'
-          const isPaid = order.status === 'paid'
-          const isDone = order.status === 'done'
-          const isMandiri = order.source === 'customer'
-          const itemCount = order.order_items?.reduce((s, i) => s + i.qty, 0) ?? 0
+        {activeOrders.map(renderCard)}
 
-          let cardBg = 'bg-white border-[var(--color-border)]'
-          if (isOpen && isMandiri) cardBg = 'bg-[var(--color-surface)] border-[var(--color-info)]'
-          if (isPaid) cardBg = 'bg-[var(--color-info-light)] border-[var(--color-info)]'
-          if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
-
-          return (
-            <div key={order.id} className={`shrink-0 border-[1.5px] rounded-[10px] overflow-hidden shadow-[0_1px_2px_rgba(20,35,25,0.08)] ${cardBg}`}>
-              <div
-                className="flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none hover:brightness-[0.97] transition-all"
-                onClick={() => setExpanded(isExp ? null : order.id)}
-              >
-                <div className="flex-1">
-                  <div className={`text-[14px] font-bold ${isDone ? 'text-[var(--color-muted)]' : ''}`}>👤 {order.customer_name}</div>
-                  <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
-                    {fmtTime(order.created_at)} · {itemCount} item
-                    {order.dining_type && ` · ${order.dining_type === 'dibungkus' ? '🥡 Bungkus' : '🍽️ Di Tempat'}`}
-                    {(isPaid || isDone) && order.payment_method && ` · ${order.payment_method}`}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-[var(--color-info)]' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
-                  {isOpen && !isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
-                  {isOpen && isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">📱 Order Mandiri</span>}
-                  {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">🍳 Sedang Dimasak</span>}
-                  {isDone && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Selesai</span>}
-                </div>
-                <ChevronDown size={14} className={`text-[var(--color-muted)] transition-transform ${isExp ? 'rotate-180' : ''}`} />
+        {countDone > 0 && (
+          <div className="shrink-0 mt-1">
+            <button
+              onClick={() => setDoneCollapsed(c => !c)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-[10px] bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors select-none">
+              <span className="text-[12px] font-bold">✓ Pesanan Selesai ({countDone})</span>
+              <ChevronDown size={14} className={`transition-transform ${doneCollapsed ? '' : 'rotate-180'}`} />
+            </button>
+            {!doneCollapsed && (
+              <div className="flex flex-col gap-2 mt-2">
+                {doneOrders.map(renderCard)}
               </div>
-
-              {isExp && (
-                <>
-                  <div className="border-t border-[var(--color-border-lt)] bg-[var(--color-surface2)] px-3.5 py-2.5">
-                    {order.order_items?.map(i => (
-                      <div key={i.id} className="flex justify-between text-[12px] py-0.5">
-                        <span>
-                          {i.name} ×{i.qty}
-                          {i.note && <span className="text-[var(--color-muted)] italic"> · {i.note}</span>}
-                        </span>
-                        <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between text-[13px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)]">
-                      <span>Total</span><span>{rp(order.total)}</span>
-                    </div>
-                    {(isPaid || isDone) && order.paid_amount != null && (
-                      <div className="flex justify-between text-[12px] text-[var(--color-muted)] mt-0.5">
-                        <span>Dibayar</span><span className="tabular-nums">{rp(order.paid_amount)}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 px-3.5 py-2 border-t border-[var(--color-border-lt)]">
-                    {isOpen && !isMandiri && (
-                      <button onClick={() => { setSettleModal(order); setPaidAmount(''); setPaymentMethod(order.payment_method ?? ''); setPayMethodError(false) }}
-                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-success)] rounded-lg hover:bg-[#1f6440] transition-colors">
-                        💳 Bayar
-                      </button>
-                    )}
-                    {isOpen && isMandiri && (
-                      <button onClick={() => setSettleModal(order)}
-                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity">
-                        ✅ Konfirmasi Pembayaran
-                      </button>
-                    )}
-                    {isPaid && (
-                      <button onClick={() => confirmDone(order)} disabled={doneLoading}
-                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-                        ✅ Selesai Disajikan
-                      </button>
-                    )}
-                    <button onClick={() => setReceiptOrder(order)}
-                      className={`py-1.5 text-[12px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] rounded-lg hover:text-[var(--color-text)] transition-colors ${(isPaid || isDone) ? 'flex-1' : 'px-3'}`}>
-                      🖨️ Print
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )
-        })}
+            )}
+          </div>
+        )}
       </div>
 
       {/* Settle modal — mandiri (QRIS simplified) */}
