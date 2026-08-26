@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Order } from '@/lib/types'
@@ -18,6 +18,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   const [orders, setOrders] = useState<Order[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
   const [doneCollapsed, setDoneCollapsed] = useState(true)
+  const printOnOpen = useRef(false)
   const [settleModal, setSettleModal] = useState<Order | null>(null)
   const [paidAmount, setPaidAmount] = useState('')
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
@@ -43,6 +44,14 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   }, [])
 
   useEffect(() => { fetchOrders() }, [fetchOrders, refreshKey])
+
+  useEffect(() => {
+    if (receiptOrder && printOnOpen.current) {
+      printOnOpen.current = false
+      const t = setTimeout(() => doPrint(receiptOrder), 150)
+      return () => clearTimeout(t)
+    }
+  }, [receiptOrder])
 
   useEffect(() => {
     const sub = supabase
@@ -89,7 +98,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     setSettleLoading(false)
     onOrderSettled()
     const printedOrder = { ...order, status: 'paid' as const, paid_amount: qrisAmount, payment_method: 'QRIS' }
-    doPrint(printedOrder)
+    printOnOpen.current = true
     setReceiptOrder(printedOrder)
   }
 

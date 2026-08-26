@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
@@ -30,10 +30,23 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [payMethodError, setPayMethodError] = useState(false)
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
+  const printOnOpen = useRef(false)
 
   useEffect(() => {
     fetchMenu()
   }, [])
+
+  useEffect(() => {
+    if (receiptOrder && printOnOpen.current) {
+      printOnOpen.current = false
+      const t = setTimeout(() => {
+        const pz = document.getElementById('print-zone')
+        if (pz) pz.textContent = buildReceipt(receiptOrder)
+        window.print()
+      }, 150)
+      return () => clearTimeout(t)
+    }
+  }, [receiptOrder])
 
   async function fetchMenu() {
     const { data } = await supabase
@@ -163,13 +176,9 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     setLoading(false)
     onOrderCreated()
 
-    autoPrint(fullOrder)
-
-    if (mode === 'tab') {
-      onToast(`Orderan terbuka "${cust}" disimpan!`)
-    } else {
-      setReceiptOrder(fullOrder)
-    }
+    printOnOpen.current = true
+    setReceiptOrder(fullOrder)
+    if (mode === 'tab') onToast(`Orderan terbuka "${cust}" disimpan!`)
   }
 
   function buildReceipt(o: Order): string {
@@ -195,12 +204,6 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     if (!receiptOrder) return
     const pz = document.getElementById('print-zone')
     if (pz) pz.textContent = buildReceipt(receiptOrder)
-    window.print()
-  }
-
-  function autoPrint(o: Order) {
-    const pz = document.getElementById('print-zone')
-    if (pz) pz.textContent = buildReceipt(o)
     window.print()
   }
 
