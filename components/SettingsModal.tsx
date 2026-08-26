@@ -173,9 +173,9 @@ export default function SettingsModal({ onClose, onToast }: Props) {
           </div>
           <button
             onClick={toggleMockPrinter}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${mockPrinter ? 'bg-[var(--color-info)]' : 'bg-[var(--color-border)]'}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden p-0 border-0 ${mockPrinter ? 'bg-[var(--color-info)]' : 'bg-[var(--color-border)]'}`}
           >
-            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${mockPrinter ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+            <span className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${mockPrinter ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>
@@ -191,9 +191,9 @@ export default function SettingsModal({ onClose, onToast }: Props) {
           </div>
           <button
             onClick={toggleAutoPrint}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden p-0 border-0 ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
           >
-            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${autoPrint ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+            <span className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${autoPrint ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>
