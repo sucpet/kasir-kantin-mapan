@@ -4,6 +4,7 @@ import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
 import { rp, orderSum } from '@/lib/utils'
+import { isConnected, printReceipt } from '@/lib/printer'
 import Modal from '@/components/Modal'
 import ConfirmModal from '@/components/ConfirmModal'
 
@@ -39,10 +40,14 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   useEffect(() => {
     if (receiptOrder && printOnOpen.current) {
       printOnOpen.current = false
-      if (localStorage.getItem('auto_print') === 'true') {
+      if (localStorage.getItem('auto_print') !== 'true') return
+      const text = buildReceipt(receiptOrder)
+      if (isConnected()) {
+        printReceipt(text).catch(() => onToast('Gagal print ke printer Bluetooth'))
+      } else {
         const t = setTimeout(() => {
           const pz = document.getElementById('print-zone')
-          if (pz) pz.textContent = buildReceipt(receiptOrder)
+          if (pz) pz.textContent = text
           window.print()
         }, 150)
         return () => clearTimeout(t)
@@ -203,11 +208,16 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     return r
   }
 
-  function doPrint() {
+  async function doPrint() {
     if (!receiptOrder) return
-    const pz = document.getElementById('print-zone')
-    if (pz) pz.textContent = buildReceipt(receiptOrder)
-    window.print()
+    const text = buildReceipt(receiptOrder)
+    if (isConnected()) {
+      try { await printReceipt(text) } catch { onToast('Gagal print ke printer Bluetooth') }
+    } else {
+      const pz = document.getElementById('print-zone')
+      if (pz) pz.textContent = text
+      window.print()
+    }
   }
 
   const allOptsSelected = optionItem

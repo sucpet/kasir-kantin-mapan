@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/Modal'
+import { isConnected, getDeviceName, connectPrinter, disconnectPrinter, onDisconnect } from '@/lib/printer'
 
 interface Props {
   onClose: () => void
@@ -13,6 +14,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
   const [qrisFile, setQrisFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [autoPrint, setAutoPrint] = useState(false)
+  const [printerName, setPrinterName] = useState<string | null>(null)
+  const [printerConnecting, setPrinterConnecting] = useState(false)
 
   useEffect(() => {
     supabase
@@ -22,7 +25,28 @@ export default function SettingsModal({ onClose, onToast }: Props) {
       .maybeSingle()
       .then(({ data }) => { if (data?.value) setQrisPreview(data.value) })
     setAutoPrint(localStorage.getItem('auto_print') === 'true')
+    if (isConnected()) setPrinterName(getDeviceName())
+    onDisconnect(() => setPrinterName(null))
   }, [])
+
+  async function handleConnectPrinter() {
+    setPrinterConnecting(true)
+    try {
+      const name = await connectPrinter()
+      setPrinterName(name)
+      onToast(`Printer "${name}" terhubung 🖨️`)
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Gagal menghubungkan printer')
+    } finally {
+      setPrinterConnecting(false)
+    }
+  }
+
+  function handleDisconnectPrinter() {
+    disconnectPrinter()
+    setPrinterName(null)
+    onToast('Printer diputus')
+  }
 
   function toggleAutoPrint() {
     const next = !autoPrint
@@ -100,11 +124,39 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         )}
       </div>
 
+      {/* Bluetooth Thermal Printer */}
+      <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
+        <div className="text-[13px] font-bold mb-1">📡 Printer Bluetooth (BLE)</div>
+        <div className="text-[11px] text-[var(--color-muted)] mb-3">
+          Sambungkan thermal printer BLE untuk cetak struk langsung tanpa dialog print.
+        </div>
+        {printerName ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-[var(--color-success-light)] border border-[var(--color-success)] rounded-lg px-3 py-2">
+              <div className="text-[11px] font-bold text-[var(--color-success-text)]">✓ Terhubung</div>
+              <div className="text-[12px] font-semibold text-[var(--color-text)] truncate">{printerName}</div>
+            </div>
+            <button onClick={handleDisconnectPrinter}
+              className="px-3 py-2 text-[12px] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
+              Putus
+            </button>
+          </div>
+        ) : (
+          <button onClick={handleConnectPrinter} disabled={printerConnecting}
+            className="w-full py-2.5 rounded-lg text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors">
+            {printerConnecting ? 'Mencari printer...' : '🔍 Cari & Hubungkan Printer'}
+          </button>
+        )}
+      </div>
+
+      {/* Auto Print toggle */}
       <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[13px] font-bold">🖨️ Auto Print Struk</div>
-            <div className="text-[11px] text-[var(--color-muted)] mt-0.5">Aktifkan hanya di perangkat yang terhubung printer</div>
+            <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
+              {printerName ? 'Print otomatis via Bluetooth saat konfirmasi' : 'Aktifkan hanya di perangkat yang terhubung printer'}
+            </div>
           </div>
           <button
             onClick={toggleAutoPrint}

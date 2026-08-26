@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Order } from '@/lib/types'
 import { rp, fmtTime, orderSum } from '@/lib/utils'
+import { isConnected, printReceipt } from '@/lib/printer'
 import Modal from '@/components/Modal'
 
 interface PesananTabProps {
@@ -48,7 +49,11 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   useEffect(() => {
     if (receiptOrder && printOnOpen.current) {
       printOnOpen.current = false
-      if (localStorage.getItem('auto_print') === 'true') {
+      if (localStorage.getItem('auto_print') !== 'true') return
+      const text = buildReceipt(receiptOrder)
+      if (isConnected()) {
+        printReceipt(text).catch(() => onToast('Gagal print ke printer Bluetooth'))
+      } else {
         const t = setTimeout(() => doPrint(receiptOrder), 150)
         return () => clearTimeout(t)
       }
@@ -137,10 +142,15 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     return r
   }
 
-  function doPrint(o: Order) {
-    const pz = document.getElementById('print-zone')
-    if (pz) pz.textContent = buildReceipt(o)
-    window.print()
+  async function doPrint(o: Order) {
+    const text = buildReceipt(o)
+    if (isConnected()) {
+      try { await printReceipt(text) } catch { onToast('Gagal print ke printer Bluetooth') }
+    } else {
+      const pz = document.getElementById('print-zone')
+      if (pz) pz.textContent = text
+      window.print()
+    }
   }
 
   const change = settleModal ? Math.max(0, Number(paidAmount) - settleModal.total) : 0
