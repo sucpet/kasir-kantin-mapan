@@ -88,6 +88,22 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     setReceiptOrder({ ...order, status: 'paid', paid_amount: paid })
   }
 
+  async function confirmSettleMandiri(order: Order) {
+    setSettleLoading(true)
+    const qrisAmount = order.total + order.points_to_earn
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'paid', paid_amount: qrisAmount, paid_at: new Date().toISOString(), payment_method: 'QRIS' })
+      .eq('id', order.id)
+    if (error) { onToast('Gagal memperbarui pesanan'); setSettleLoading(false); return }
+    fetchOrders()
+    setSettleModal(null)
+    setExpanded(null)
+    setSettleLoading(false)
+    onOrderSettled()
+    setReceiptOrder({ ...order, status: 'paid', paid_amount: qrisAmount, payment_method: 'QRIS' })
+  }
+
   async function confirmDone(order: Order) {
     setDoneLoading(true)
     const { error } = await supabase
@@ -159,9 +175,11 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
           const isOpen = order.status === 'open'
           const isPaid = order.status === 'paid'
           const isDone = order.status === 'done'
+          const isMandiri = order.source === 'customer'
           const itemCount = order.order_items?.reduce((s, i) => s + i.qty, 0) ?? 0
 
           let cardBg = 'bg-white border-[var(--color-border)]'
+          if (isOpen && isMandiri) cardBg = 'bg-[var(--color-surface)] border-[var(--color-info)]'
           if (isPaid) cardBg = 'bg-[var(--color-info-light)] border-[var(--color-info)]'
           if (isDone) cardBg = 'bg-[var(--color-surface2)] border-[var(--color-border)]'
 
@@ -181,7 +199,8 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                 </div>
                 <div className="text-right">
                   <div className={`text-[14px] font-extrabold tabular-nums ${isDone ? 'text-[var(--color-muted)]' : isPaid ? 'text-[var(--color-info)]' : 'text-[var(--color-primary)]'}`}>{rp(order.total)}</div>
-                  {isOpen && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
+                  {isOpen && !isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent-text)]">Tab Terbuka</span>}
+                  {isOpen && isMandiri && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">📱 Order Mandiri</span>}
                   {isPaid && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-info-light)] text-[var(--color-info)]">🍳 Sedang Dimasak</span>}
                   {isDone && <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">✓ Selesai</span>}
                 </div>
@@ -210,10 +229,16 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                     )}
                   </div>
                   <div className="flex gap-2 px-3.5 py-2 border-t border-[var(--color-border-lt)]">
-                    {isOpen && (
+                    {isOpen && !isMandiri && (
                       <button onClick={() => { setSettleModal(order); setPaidAmount(''); setPaymentMethod(order.payment_method ?? ''); setPayMethodError(false) }}
                         className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-success)] rounded-lg hover:bg-[#1f6440] transition-colors">
                         💳 Bayar
+                      </button>
+                    )}
+                    {isOpen && isMandiri && (
+                      <button onClick={() => setSettleModal(order)}
+                        className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity">
+                        ✅ Konfirmasi Pembayaran
                       </button>
                     )}
                     {isPaid && (
@@ -234,8 +259,49 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
         })}
       </div>
 
-      {/* Settle modal */}
-      {settleModal && (
+      {/* Settle modal — mandiri (QRIS simplified) */}
+      {settleModal && settleModal.source === 'customer' && (
+        <Modal onClose={() => setSettleModal(null)}>
+          <h2 className="text-[16px] font-extrabold text-center mb-1">✅ Konfirmasi Pembayaran</h2>
+          <p className="text-center text-[13px] font-bold text-[var(--color-primary)] mb-4">{settleModal.customer_name}</p>
+          <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-3">
+            {settleModal.order_items?.map(i => (
+              <div key={i.id} className="py-0.5">
+                <div className="flex justify-between text-[12px] tabular-nums">
+                  <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
+                </div>
+                {i.note && <div className="text-[10px] text-[var(--color-primary)] opacity-80 italic">→ {i.note}</div>}
+              </div>
+            ))}
+            <div className="flex justify-between text-[13px] text-[var(--color-muted)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
+              <span>Subtotal</span><span>{rp(settleModal.total)}</span>
+            </div>
+            {settleModal.pending_redeem > 0 && (
+              <div className="flex justify-between text-[13px] text-[var(--color-muted)] mt-0.5 tabular-nums">
+                <span>Poin digunakan</span><span>−{rp(settleModal.pending_redeem)}</span>
+              </div>
+            )}
+          </div>
+          <div className="bg-[var(--color-info-light)] border border-[var(--color-info)] rounded-[10px] p-3.5 mb-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[13px] font-bold text-[var(--color-info)]">📱 Nominal QRIS</span>
+              <span className="text-[18px] font-extrabold tabular-nums text-[var(--color-info)]">{rp(settleModal.total + settleModal.points_to_earn)}</span>
+            </div>
+            <p className="text-[11px] text-[var(--color-muted)] mt-1.5">Pastikan jumlah ini sudah masuk di histori QRIS sebelum konfirmasi.</p>
+          </div>
+          <button onClick={() => confirmSettleMandiri(settleModal)} disabled={settleLoading}
+            className="w-full py-2.5 rounded-lg text-[13px] font-bold text-white bg-[var(--color-info)] mb-1.5 disabled:opacity-50 hover:opacity-90 transition-opacity">
+            {settleLoading ? 'Memproses...' : '✅ Konfirmasi Sudah Dibayar'}
+          </button>
+          <button onClick={() => setSettleModal(null)}
+            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+            Batal
+          </button>
+        </Modal>
+      )}
+
+      {/* Settle modal — kasir (full) */}
+      {settleModal && settleModal.source !== 'customer' && (
         <Modal onClose={() => { setSettleModal(null); setPaidAmount(''); setPaymentMethod(''); setPayMethodError(false) }}>
           <h2 className="text-[16px] font-extrabold text-center mb-1">💳 Bayar</h2>
           <p className="text-center text-[13px] font-bold text-[var(--color-primary)] mb-4">{settleModal.customer_name}</p>

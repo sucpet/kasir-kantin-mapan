@@ -28,7 +28,7 @@ export default function RekapTab() {
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 
-  const paid = orders.filter(o => o.status === 'paid')
+  const paid = orders.filter(o => o.status === 'paid' || o.status === 'done')
   const open = orders.filter(o => o.status === 'open')
   const revenue = paid.reduce((s, o) => s + o.total, 0)
 
@@ -45,7 +45,7 @@ export default function RekapTab() {
     let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\n${line}\n`
     o.order_items?.forEach(i => { r += `${i.name}\n  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n` })
     r += `${line}\nTOTAL     : ${rp(o.total)}\n`
-    if (o.status === 'paid') {
+    if (o.status === 'paid' || o.status === 'done') {
       r += `BAYAR     : ${rp(o.paid_amount ?? o.total)}\nKEMBALI   : ${rp(Math.max(0, (o.paid_amount ?? o.total) - o.total))}\n`
     } else {
       r += `STATUS    : BELUM DIBAYAR\n`
@@ -136,8 +136,8 @@ export default function RekapTab() {
                 </div>
                 <div className="text-right">
                   <div className="flex items-center justify-end gap-1 mb-0.5">
-                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'paid' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
-                      {o.status === 'paid' ? 'Lunas' : 'Tab'}
+                    <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${(o.status === 'paid' || o.status === 'done') ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
+                      {o.status === 'done' ? 'Selesai' : o.status === 'paid' ? 'Lunas' : 'Tab'}
                     </span>
                     {o.payment_method && (
                       <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-surface2)] text-[var(--color-muted)] border border-[var(--color-border)]">
@@ -145,9 +145,15 @@ export default function RekapTab() {
                       </span>
                     )}
                   </div>
-                  <div className={`text-[13px] font-extrabold tabular-nums ${o.status === 'paid' ? 'text-[var(--color-success)]' : 'text-[var(--color-accent)]'}`}>
+                  <div className={`text-[13px] font-extrabold tabular-nums ${(o.status === 'paid' || o.status === 'done') ? 'text-[var(--color-success)]' : 'text-[var(--color-accent)]'}`}>
                     {rp(o.total)}
                   </div>
+                  {o.source === 'customer' && (o.status === 'paid' || o.status === 'done') && (
+                    <div className="text-[10px] text-[var(--color-info)] tabular-nums mt-0.5">
+                      📱 QRIS {rp(o.total + o.points_to_earn)}
+                      {o.pending_redeem > 0 && ` · −${rp(o.pending_redeem)} poin`}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
