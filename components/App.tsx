@@ -10,6 +10,8 @@ import { useToast } from './Toast'
 import { supabase } from '@/lib/supabase'
 import QRModal from './QRModal'
 import SettingsModal from './SettingsModal'
+import { Order } from '@/lib/types'
+import { rp } from '@/lib/utils'
 
 type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap'
 
@@ -30,6 +32,7 @@ export default function App() {
   const [isLight, setIsLight] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null)
   const { show: toast, node: toastNode } = useToast()
 
   useEffect(() => {
@@ -74,7 +77,22 @@ export default function App() {
     fetchOpenCount()
     const sub = supabase
       .channel('open-count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOpenCount)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
+        fetchOpenCount()
+        const newOrder = payload.new as Order
+        if (newOrder.source === 'customer' && newOrder.status === 'open') {
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from('orders')
+              .select('*, order_items(*)')
+              .eq('id', newOrder.id)
+              .single()
+            if (data) setNewOrderAlert(data)
+          }, 800)
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, fetchOpenCount)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, fetchOpenCount)
       .subscribe()
     return () => { supabase.removeChannel(sub) }
   }, [])
@@ -171,6 +189,42 @@ export default function App() {
       {toastNode}
       {showQR && <QRModal onClose={() => setShowQR(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onToast={toast} />}
+
+      {newOrderAlert && (
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-2xl p-5 w-full max-w-sm shadow-2xl">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">🛎️</div>
+              <h2 className="text-[18px] font-extrabold text-[var(--color-text)]">Pesanan Baru!</h2>
+              <p className="text-[13px] text-[var(--color-primary)] font-bold mt-0.5">{newOrderAlert.customer_name}</p>
+            </div>
+            <div className="bg-[var(--color-surface2)] rounded-xl p-3 mb-4 border border-[var(--color-border)]">
+              {newOrderAlert.order_items?.map(i => (
+                <div key={i.id} className="py-0.5">
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-[var(--color-text)]">{i.name} ×{i.qty}</span>
+                    <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
+                  </div>
+                  {i.note && <div className="text-[10px] text-[var(--color-muted)] italic ml-2">→ {i.note}</div>}
+                </div>
+              ))}
+              <div className="flex justify-between text-[14px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] text-[var(--color-text)]">
+                <span>Total</span><span className="tabular-nums text-[var(--color-primary)]">{rp(newOrderAlert.total)}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => { setNewOrderAlert(null); setTab('pesanan') }}
+              className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[13px] font-bold mb-2 hover:opacity-90 transition-opacity">
+              📋 Lihat di Pesanan
+            </button>
+            <button
+              onClick={() => setNewOrderAlert(null)}
+              className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[13px] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
