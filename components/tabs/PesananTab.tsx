@@ -52,7 +52,9 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
       if (localStorage.getItem('auto_print') !== 'true') return
       const text = buildReceipt(receiptOrder)
       if (isConnected()) {
-        printReceipt(text).catch(() => onToast('Gagal print ke printer Bluetooth'))
+        printReceipt(text)
+          .then(() => onToast('🖨️ Struk berhasil dikirim ke printer'))
+          .catch(() => onToast('Gagal print ke printer Bluetooth'))
       } else {
         const t = setTimeout(() => doPrint(receiptOrder), 150)
         return () => clearTimeout(t)
@@ -145,7 +147,10 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   async function doPrint(o: Order) {
     const text = buildReceipt(o)
     if (isConnected()) {
-      try { await printReceipt(text) } catch { onToast('Gagal print ke printer Bluetooth') }
+      try {
+        await printReceipt(text)
+        onToast('🖨️ Struk berhasil dikirim ke printer')
+      } catch { onToast('Gagal print ke printer Bluetooth') }
     } else {
       const pz = document.getElementById('print-zone')
       if (pz) pz.textContent = text

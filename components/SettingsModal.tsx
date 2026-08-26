@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/Modal'
-import { isConnected, getDeviceName, connectPrinter, disconnectPrinter, onDisconnect } from '@/lib/printer'
+import { isConnected, getDeviceName, connectPrinter, disconnectPrinter, onDisconnect, isMockMode } from '@/lib/printer'
 
 interface Props {
   onClose: () => void
@@ -16,6 +16,7 @@ export default function SettingsModal({ onClose, onToast }: Props) {
   const [autoPrint, setAutoPrint] = useState(false)
   const [printerName, setPrinterName] = useState<string | null>(null)
   const [printerConnecting, setPrinterConnecting] = useState(false)
+  const [mockPrinter, setMockPrinter] = useState(false)
 
   useEffect(() => {
     supabase
@@ -25,9 +26,19 @@ export default function SettingsModal({ onClose, onToast }: Props) {
       .maybeSingle()
       .then(({ data }) => { if (data?.value) setQrisPreview(data.value) })
     setAutoPrint(localStorage.getItem('auto_print') === 'true')
+    const mock = isMockMode()
+    setMockPrinter(mock)
     if (isConnected()) setPrinterName(getDeviceName())
-    onDisconnect(() => setPrinterName(null))
+    onDisconnect(() => { if (!isMockMode()) setPrinterName(null) })
   }, [])
+
+  function toggleMockPrinter() {
+    const next = !mockPrinter
+    setMockPrinter(next)
+    localStorage.setItem('printer_mock', String(next))
+    setPrinterName(next ? 'Mock Printer (Test)' : (isConnected() ? getDeviceName() : null))
+    onToast(next ? '🖨️ Mode mock printer aktif' : 'Mode mock printer dimatikan')
+  }
 
   async function handleConnectPrinter() {
     setPrinterConnecting(true)
@@ -130,23 +141,43 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         <div className="text-[11px] text-[var(--color-muted)] mb-3">
           Sambungkan thermal printer BLE untuk cetak struk langsung tanpa dialog print.
         </div>
+
+        {/* Status printer */}
         {printerName ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-[var(--color-success-light)] border border-[var(--color-success)] rounded-lg px-3 py-2">
-              <div className="text-[11px] font-bold text-[var(--color-success-text)]">✓ Terhubung</div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`flex-1 rounded-lg px-3 py-2 border ${mockPrinter ? 'bg-[var(--color-info-light)] border-[var(--color-info)]' : 'bg-[var(--color-success-light)] border-[var(--color-success)]'}`}>
+              <div className={`text-[11px] font-bold ${mockPrinter ? 'text-[var(--color-info)]' : 'text-[var(--color-success-text)]'}`}>
+                {mockPrinter ? '🧪 Mode Test' : '✓ Terhubung'}
+              </div>
               <div className="text-[12px] font-semibold text-[var(--color-text)] truncate">{printerName}</div>
             </div>
-            <button onClick={handleDisconnectPrinter}
-              className="px-3 py-2 text-[12px] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
-              Putus
-            </button>
+            {!mockPrinter && (
+              <button onClick={handleDisconnectPrinter}
+                className="px-3 py-2 text-[12px] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
+                Putus
+              </button>
+            )}
           </div>
         ) : (
           <button onClick={handleConnectPrinter} disabled={printerConnecting}
-            className="w-full py-2.5 rounded-lg text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors">
+            className="w-full py-2.5 rounded-lg text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors mb-3">
             {printerConnecting ? 'Mencari printer...' : '🔍 Cari & Hubungkan Printer'}
           </button>
         )}
+
+        {/* Mock toggle */}
+        <div className="flex items-center justify-between pt-2.5 border-t border-[var(--color-border)]">
+          <div>
+            <div className="text-[12px] font-bold">🧪 Mode Test (tanpa printer)</div>
+            <div className="text-[10px] text-[var(--color-muted)] mt-0.5">Simulasi print untuk cek flow</div>
+          </div>
+          <button
+            onClick={toggleMockPrinter}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${mockPrinter ? 'bg-[var(--color-info)]' : 'bg-[var(--color-border)]'}`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${mockPrinter ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
       </div>
 
       {/* Auto Print toggle */}

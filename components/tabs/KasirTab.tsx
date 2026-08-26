@@ -43,7 +43,9 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       if (localStorage.getItem('auto_print') !== 'true') return
       const text = buildReceipt(receiptOrder)
       if (isConnected()) {
-        printReceipt(text).catch(() => onToast('Gagal print ke printer Bluetooth'))
+        printReceipt(text)
+          .then(() => onToast('🖨️ Struk berhasil dikirim ke printer'))
+          .catch(() => onToast('Gagal print ke printer Bluetooth'))
       } else {
         const t = setTimeout(() => {
           const pz = document.getElementById('print-zone')
@@ -212,7 +214,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     if (!receiptOrder) return
     const text = buildReceipt(receiptOrder)
     if (isConnected()) {
-      try { await printReceipt(text) } catch { onToast('Gagal print ke printer Bluetooth') }
+      try {
+        await printReceipt(text)
+        onToast('🖨️ Struk berhasil dikirim ke printer')
+      } catch { onToast('Gagal print ke printer Bluetooth') }
     } else {
       const pz = document.getElementById('print-zone')
       if (pz) pz.textContent = text

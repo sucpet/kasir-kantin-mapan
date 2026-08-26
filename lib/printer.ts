@@ -18,11 +18,17 @@ const BLE_CONFIGS = [
   { service: '49535343-fe7d-4ae5-8fa9-9fafd205e455', write: '49535343-8841-43f4-a8d4-ecbe34729bb3' },
 ]
 
+export function isMockMode(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  return localStorage.getItem('printer_mock') === 'true'
+}
+
 export function isConnected(): boolean {
-  return !!_device?.gatt?.connected && !!_char
+  return isMockMode() || (!!_device?.gatt?.connected && !!_char)
 }
 
 export function getDeviceName(): string | null {
+  if (isMockMode()) return 'Mock Printer (Test)'
   return _device?.name ?? null
 }
 
@@ -120,8 +126,14 @@ export function toEscPos(text: string): Uint8Array {
   return new Uint8Array(bytes)
 }
 
-// Helper utama: print teks struk via BLE
+// Helper utama: print teks struk via BLE (atau mock)
 export async function printReceipt(receiptText: string): Promise<void> {
+  if (isMockMode()) {
+    // Simulasi delay pengiriman ke printer
+    await new Promise(r => setTimeout(r, 500))
+    console.log('[MOCK PRINT]\n' + receiptText)
+    return
+  }
   const data = toEscPos(receiptText)
   await sendRaw(data)
 }
