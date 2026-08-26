@@ -310,7 +310,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
       {/* Option selection modal */}
       {optionItem && (
-        <Modal onClose={() => setOptionItem(null)}>
+        <Modal center onClose={() => setOptionItem(null)}>
           <h2 className="text-[16px] font-extrabold text-center mb-1">{optionItem.name}</h2>
           <p className="text-center text-[12px] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
           {(optionItem.options ?? []).map((group, gi) => (
