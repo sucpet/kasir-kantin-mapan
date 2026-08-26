@@ -42,7 +42,8 @@ export default function RekapTab() {
 
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
-    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\n${line}\n`
+    const jenis = o.dining_type === 'dibungkus' ? 'Dibungkus' : o.dining_type === 'makan_ditempat' ? 'Di Tempat' : '-'
+    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\nJenis     : ${jenis}\n${line}\n`
     o.order_items?.forEach(i => { r += `${i.name}\n  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n` })
     r += `${line}\nTOTAL     : ${rp(o.total)}\n`
     if (o.status === 'paid' || o.status === 'done') {

@@ -119,7 +119,8 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
-    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\n${line}\n`
+    const jenis = o.dining_type === 'dibungkus' ? 'Dibungkus' : o.dining_type === 'makan_ditempat' ? 'Di Tempat' : '-'
+    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nWaktu     : ${fmtTime(o.created_at)}\nJenis     : ${jenis}\n${line}\n`
     o.order_items?.forEach(i => {
       r += `${i.name}\n`
       if (i.note) r += `  * ${i.note}\n`

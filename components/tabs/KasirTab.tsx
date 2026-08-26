@@ -185,7 +185,8 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
-    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\n${line}\n`
+    const jenis = o.dining_type === 'dibungkus' ? 'Dibungkus' : o.dining_type === 'makan_ditempat' ? 'Di Tempat' : '-'
+    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nJenis     : ${jenis}\n${line}\n`
     o.order_items?.forEach(i => {
       r += `${i.name}\n`
       if (i.note) r += `  * ${i.note}\n`
