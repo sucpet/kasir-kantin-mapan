@@ -152,16 +152,23 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       }))
     )
 
+    const fullOrder: Order = {
+      ...order,
+      order_items: cart.map(c => ({ id: '', order_id: order.id, menu_item_id: c.menuId, name: c.name, price: c.price, qty: c.qty, note: c.note || null })),
+    }
+
     doClearCart()
     setPayModal(null)
     setPaidAmount('')
     setLoading(false)
     onOrderCreated()
 
+    autoPrint(fullOrder)
+
     if (mode === 'tab') {
       onToast(`Orderan terbuka "${cust}" disimpan!`)
     } else {
-      setReceiptOrder({ ...order, order_items: cart.map(c => ({ id: '', order_id: order.id, menu_item_id: c.menuId, name: c.name, price: c.price, qty: c.qty, note: c.note || null })) })
+      setReceiptOrder(fullOrder)
     }
   }
 
@@ -188,6 +195,12 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     if (!receiptOrder) return
     const pz = document.getElementById('print-zone')
     if (pz) pz.textContent = buildReceipt(receiptOrder)
+    window.print()
+  }
+
+  function autoPrint(o: Order) {
+    const pz = document.getElementById('print-zone')
+    if (pz) pz.textContent = buildReceipt(o)
     window.print()
   }
 

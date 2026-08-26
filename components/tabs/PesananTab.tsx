@@ -88,7 +88,9 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     setExpanded(null)
     setSettleLoading(false)
     onOrderSettled()
-    setReceiptOrder({ ...order, status: 'paid', paid_amount: qrisAmount, payment_method: 'QRIS' })
+    const printedOrder = { ...order, status: 'paid' as const, paid_amount: qrisAmount, payment_method: 'QRIS' }
+    doPrint(printedOrder)
+    setReceiptOrder(printedOrder)
   }
 
   async function confirmDone(order: Order) {
