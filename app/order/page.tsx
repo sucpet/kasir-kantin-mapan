@@ -56,6 +56,7 @@ export default function OrderPage() {
   const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [qrisImageUrl, setQrisImageUrl] = useState('')
   const [lastOrderName, setLastOrderName] = useState('')
@@ -210,6 +211,7 @@ export default function OrderPage() {
   async function submitOrder() {
     if (!customerName.trim()) { setNameError(true); return }
     setLoading(true)
+    setSubmitError('')
 
     const { data, error } = await supabase.rpc('create_order', {
       p_customer_name:  customerName.trim(),
@@ -225,7 +227,7 @@ export default function OrderPage() {
       })),
     })
 
-    if (error || !data) { setLoading(false); return }
+    if (error || !data) { setSubmitError('Gagal mengirim pesanan. Coba lagi.'); setLoading(false); return }
 
     const { original_total, safe_redeem, net_total, suffix, new_points } = data as {
       order_id: string; original_total: number; safe_redeem: number
@@ -482,7 +484,7 @@ export default function OrderPage() {
               </div>
             )}
             <button
-              onClick={() => { setSubmitted(false); setCustomerName(''); setRedeemAmt(0) }}
+              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0) }}
               className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold hover:bg-[var(--color-primary-light)] transition-colors"
             >
               Pesan Lagi
@@ -727,11 +729,14 @@ export default function OrderPage() {
               />
             </div>
 
+            {submitError && (
+              <p className="text-[12px] text-[var(--color-danger)] font-semibold mb-2 text-center">{submitError}</p>
+            )}
             <button onClick={submitOrder} disabled={loading}
               className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[14px] font-bold mb-2 disabled:opacity-50">
               {loading ? 'Mengirim...' : `✅ Kirim Pesanan${safeRedeem > 0 ? ` — ${rp(netTotal)}` : ''}`}
             </button>
-            <button onClick={() => setShowCart(false)}
+            <button onClick={() => { setShowCart(false); setSubmitError('') }}
               className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[13px] font-semibold text-[var(--color-muted)]">
               Kembali ke Menu
             </button>

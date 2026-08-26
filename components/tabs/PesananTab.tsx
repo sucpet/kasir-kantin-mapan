@@ -21,7 +21,8 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   const [paidAmount, setPaidAmount] = useState('')
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [settleLoading, setSettleLoading] = useState(false)
+  const [doneLoading, setDoneLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
   const [payMethodError, setPayMethodError] = useState(false)
 
@@ -69,34 +70,34 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
   async function confirmSettle(order: Order) {
     if (!paymentMethod) { setPayMethodError(true); return }
-    setLoading(true)
+    setSettleLoading(true)
     const paid = Number(paidAmount) || order.total
     const { error } = await supabase
       .from('orders')
       .update({ status: 'paid', paid_amount: paid, paid_at: new Date().toISOString(), payment_method: paymentMethod })
       .eq('id', order.id)
-    if (error) { onToast('Gagal memperbarui pesanan'); setLoading(false); return }
+    if (error) { onToast('Gagal memperbarui pesanan'); setSettleLoading(false); return }
     fetchOrders()
     setSettleModal(null)
     setExpanded(null)
     setPaidAmount('')
     setPaymentMethod('')
     setPayMethodError(false)
-    setLoading(false)
+    setSettleLoading(false)
     onOrderSettled()
     setReceiptOrder({ ...order, status: 'paid', paid_amount: paid })
   }
 
   async function confirmDone(order: Order) {
-    setLoading(true)
+    setDoneLoading(true)
     const { error } = await supabase
       .from('orders')
       .update({ status: 'done' })
       .eq('id', order.id)
-    if (error) { onToast('Gagal memperbarui status'); setLoading(false); return }
+    if (error) { onToast('Gagal memperbarui status'); setDoneLoading(false); return }
     fetchOrders()
     setExpanded(null)
-    setLoading(false)
+    setDoneLoading(false)
     onToast('Pesanan selesai disajikan ✓')
   }
 
@@ -215,7 +216,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                       </button>
                     )}
                     {isPaid && (
-                      <button onClick={() => confirmDone(order)} disabled={loading}
+                      <button onClick={() => confirmDone(order)} disabled={doneLoading}
                         className="flex-1 py-1.5 text-[12px] font-bold text-white bg-[var(--color-info)] rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
                         ✅ Selesai Disajikan
                       </button>
@@ -278,9 +279,9 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
               </div>
             )}
           </div>
-          <button onClick={() => confirmSettle(settleModal)} disabled={loading}
+          <button onClick={() => confirmSettle(settleModal)} disabled={settleLoading}
             className="w-full py-2.5 rounded-lg text-[13px] font-bold text-white bg-[var(--color-success)] mb-1.5 disabled:opacity-50 hover:bg-[#1f6440] transition-colors">
-            {loading ? 'Memproses...' : '✅ Konfirmasi Bayar'}
+            {settleLoading ? 'Memproses...' : '✅ Konfirmasi Bayar'}
           </button>
           <button onClick={() => { setSettleModal(null); setPaidAmount(''); setPaymentMethod(''); setPayMethodError(false) }}
             className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">

@@ -24,7 +24,6 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [loading, setLoading] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
-  const [nameError, setNameError] = useState(false)
   const [modalNameError, setModalNameError] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -89,7 +88,6 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   function doClearCart() {
     setCart([])
     setCustomerName('')
-    setNameError(false)
     setConfirmClear(false)
   }
 
