@@ -74,7 +74,7 @@ export default function SettingsModal({ onClose, onToast }: Props) {
   }
 
   async function save() {
-    if (!qrisFile) { onClose(); return }
+    if (!qrisFile) return
     setSaving(true)
     const ext = qrisFile.name.split('.').pop() ?? 'png'
     const path = `public/qris-${crypto.randomUUID()}.${ext}`
@@ -169,11 +169,11 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         <div className="flex items-center justify-between pt-2.5 border-t border-[var(--color-border)]">
           <div>
             <div className="text-[12px] font-bold">🧪 Mode Test (tanpa printer)</div>
-            <div className="text-[10px] text-[var(--color-muted)] mt-0.5">Simulasi print untuk cek flow</div>
+            <div className="text-[10px] text-[var(--color-muted)] mt-0.5">Simulasi print untuk cek flow · tersimpan otomatis</div>
           </div>
           <button
             onClick={toggleMockPrinter}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${mockPrinter ? 'bg-[var(--color-info)]' : 'bg-[var(--color-border)]'}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${mockPrinter ? 'bg-[var(--color-info)]' : 'bg-[var(--color-border)]'}`}
           >
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${mockPrinter ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
           </button>
@@ -186,22 +186,24 @@ export default function SettingsModal({ onClose, onToast }: Props) {
           <div>
             <div className="text-[13px] font-bold">🖨️ Auto Print Struk</div>
             <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
-              {printerName ? 'Print otomatis via Bluetooth saat konfirmasi' : 'Aktifkan hanya di perangkat yang terhubung printer'}
+              {printerName ? 'Print otomatis via Bluetooth saat konfirmasi' : 'Aktifkan hanya di perangkat yang terhubung printer'} · tersimpan otomatis
             </div>
           </div>
           <button
             onClick={toggleAutoPrint}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
           >
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${autoPrint ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
           </button>
         </div>
       </div>
 
-      <button onClick={save} disabled={saving || !qrisFile}
-        className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
-        {saving ? 'Menyimpan...' : '💾 Simpan'}
-      </button>
+      {qrisFile && (
+        <button onClick={save} disabled={saving}
+          className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
+          {saving ? 'Menyimpan...' : '💾 Simpan QRIS'}
+        </button>
+      )}
       <button onClick={onClose}
         className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
         Tutup
