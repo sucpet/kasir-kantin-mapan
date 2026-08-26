@@ -83,6 +83,10 @@ export default function OrderPage() {
   const [lastPointsEarned, setLastPointsEarned] = useState(0)
   const [lastPointsTotal, setLastPointsTotal] = useState(0)
   const [lastHadPhone, setLastHadPhone] = useState(false)
+  const [orderId, setOrderId] = useState<string | null>(null)
+  const [orderStatus, setOrderStatus] = useState<'open' | 'paid' | 'done'>('open')
+  const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
+  const [diningError, setDiningError] = useState(false)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -92,6 +96,31 @@ export default function OrderPage() {
     supabase.from('settings').select('value').eq('key', 'qris_image_url').maybeSingle()
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
+
+  // Realtime: track submitted order status live
+  useEffect(() => {
+    if (!submitted || !orderId) return
+    const ch = supabase
+      .channel(`order-${orderId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        async (payload) => {
+          const status = (payload.new as { status: string }).status as 'open' | 'paid' | 'done'
+          setOrderStatus(status)
+          if ((status === 'paid' || status === 'done') && phone) {
+            const { data } = await supabase.from('customers').select('points').eq('phone', phone).maybeSingle()
+            if (data) {
+              setCustomer(prev => {
+                const updated = prev ? { ...prev, points: data.points } : null
+                if (updated) saveSession(phone, updated)
+                return updated
+              })
+              setLastPointsTotal(data.points)
+            }
+          }
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [submitted, orderId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Session expires 5 minutes after login — show login screen again, no page reload
   useEffect(() => {
@@ -209,6 +238,7 @@ export default function OrderPage() {
   const filtered = activeCat === 'Semua' ? menu : menu.filter(i => i.category === activeCat)
 
   async function submitOrder() {
+    if (!diningType) { setDiningError(true); return }
     if (!customerName.trim()) { setNameError(true); return }
     setLoading(true)
     setSubmitError('')
@@ -219,6 +249,7 @@ export default function OrderPage() {
       p_payment_method: qrisImageUrl ? 'QRIS' : null,
       p_source:         'customer',
       p_redeem_points:  redeemAmt,
+      p_dining_type:    diningType,
       p_items: cart.map(c => ({
         menu_item_id: c.menuId,
         qty:          c.qty,
@@ -229,17 +260,12 @@ export default function OrderPage() {
 
     if (error || !data) { setSubmitError('Gagal mengirim pesanan. Coba lagi.'); setLoading(false); return }
 
-    const { original_total, safe_redeem, net_total, suffix, new_points } = data as {
+    const { order_id, original_total, safe_redeem, net_total, suffix, new_points } = data as {
       order_id: string; original_total: number; safe_redeem: number
       net_total: number; suffix: number; new_points: number
     }
 
-    if (phone) {
-      const updated = { name: customerName.trim(), points: new_points }
-      setCustomer(updated)
-      saveSession(phone, updated)
-    }
-
+    // Poin belum diaplikasikan — ditunda sampai kasir konfirmasi (trigger DB)
     setLastOrderName(customerName.trim())
     setLastOriginalTotal(original_total)
     setLastSafeRedeem(safe_redeem)
@@ -247,11 +273,15 @@ export default function OrderPage() {
     setLastOrderItems([...cart])
     setPaymentSuffix(suffix)
     setLastPointsEarned(suffix)
-    setLastPointsTotal(new_points)
+    setLastPointsTotal(new_points) // poin saat ini (belum berubah), update via realtime
     setLastHadPhone(!!phone)
+    setOrderId(order_id)
+    setOrderStatus('open')
     setLoading(false)
     setCart([])
     setRedeemAmt(0)
+    setDiningType(null)
+    setDiningError(false)
     setShowCart(false)
     setSubmitted(true)
   }
@@ -387,10 +417,37 @@ export default function OrderPage() {
         </header>
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-sm mx-auto p-5 pb-10">
-            <div className="text-center mb-5">
-              <div className="text-5xl mb-3">✅</div>
-              <h1 className="text-[20px] font-extrabold text-[var(--color-text)]">Pesanan Diterima!</h1>
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-2">✅</div>
+              <h1 className="text-[20px] font-extrabold text-[var(--color-text)]">Pesanan Dikirim!</h1>
               <p className="text-[13px] text-[var(--color-primary)] font-bold mt-0.5">{lastOrderName}</p>
+            </div>
+
+            {/* Status live */}
+            <div className={`rounded-xl p-3.5 mb-4 text-center border transition-all ${
+              orderStatus === 'done'
+                ? 'bg-[var(--color-success-light)] border-[var(--color-success)]'
+                : orderStatus === 'paid'
+                ? 'bg-[var(--color-info-light)] border-[var(--color-info)]'
+                : 'bg-[var(--color-surface2)] border-[var(--color-border)]'
+            }`}>
+              <div className="text-2xl mb-1">
+                {orderStatus === 'done' ? '🎉' : orderStatus === 'paid' ? '🍳' : '⏳'}
+              </div>
+              <div className={`text-[14px] font-extrabold ${
+                orderStatus === 'done' ? 'text-[var(--color-success)]'
+                : orderStatus === 'paid' ? 'text-[var(--color-info)]'
+                : 'text-[var(--color-text)]'
+              }`}>
+                {orderStatus === 'done' ? 'Pesanan Siap! Silakan Diambil'
+                : orderStatus === 'paid' ? 'Sedang Disiapkan...'
+                : 'Menunggu Konfirmasi Kasir'}
+              </div>
+              <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
+                {orderStatus === 'done' ? 'Terima kasih sudah menunggu!'
+                : orderStatus === 'paid' ? 'Kasir sudah mengonfirmasi pesananmu'
+                : 'Pesananmu sedang dikonfirmasi...'}
+              </div>
             </div>
 
             {/* Order summary */}
@@ -465,26 +522,33 @@ export default function OrderPage() {
             {lastHadPhone && (
               <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3.5 mb-4">
                 <p className="text-[12px] font-extrabold text-[var(--color-text)] mb-2">🎁 Poin Kamu</p>
-                {lastPointsEarned > 0 && (
-                  <div className="flex justify-between text-[12px]">
-                    <span className="text-[var(--color-muted)]">Poin diperoleh</span>
-                    <span className="tabular-nums font-bold text-[var(--color-primary)]">+{lastPointsEarned.toLocaleString('id')} poin</span>
-                  </div>
-                )}
                 {lastSafeRedeem > 0 && (
                   <div className="flex justify-between text-[12px] mt-0.5">
                     <span className="text-[var(--color-muted)]">Poin ditukar</span>
                     <span className="tabular-nums font-bold text-[var(--color-accent-text)]">−{lastSafeRedeem.toLocaleString('id')} poin</span>
                   </div>
                 )}
+                {lastPointsEarned > 0 && (
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-[var(--color-muted)]">
+                      Poin diperoleh{orderStatus === 'open' ? ' (pending)' : ''}
+                    </span>
+                    <span className={`tabular-nums font-bold ${orderStatus === 'open' ? 'text-[var(--color-muted)]' : 'text-[var(--color-primary)]'}`}>
+                      +{lastPointsEarned.toLocaleString('id')} poin
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-[13px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)]">
                   <span className="text-[var(--color-text)]">Total poin</span>
                   <span className="tabular-nums text-[var(--color-primary)]">{lastPointsTotal.toLocaleString('id')} poin</span>
                 </div>
+                {orderStatus === 'open' && (lastSafeRedeem > 0 || lastPointsEarned > 0) && (
+                  <p className="text-[10px] text-[var(--color-muted)] mt-1.5 text-center italic">Diperbarui setelah kasir mengonfirmasi</p>
+                )}
               </div>
             )}
             <button
-              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0) }}
+              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0); setOrderId(null); setOrderStatus('open') }}
               className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold hover:bg-[var(--color-primary-light)] transition-colors"
             >
               Pesan Lagi
@@ -717,6 +781,31 @@ export default function OrderPage() {
                 </div>
               </div>
             )}
+
+            <div className="mb-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
+                Jenis Pesanan *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'makan_ditempat', label: 'Makan di Tempat', icon: '🍽️' },
+                  { id: 'dibungkus', label: 'Dibungkus', icon: '🥡' },
+                ] as const).map(opt => (
+                  <button key={opt.id} type="button"
+                    onClick={() => { setDiningType(opt.id); setDiningError(false) }}
+                    className={`py-2.5 rounded-xl text-[13px] font-bold border-[1.5px] transition-all
+                      ${diningType === opt.id
+                        ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                        : diningError
+                        ? 'border-[var(--color-danger)] text-[var(--color-text)]'
+                        : 'border-[var(--color-border)] text-[var(--color-text)]'
+                      }`}>
+                    {opt.icon} {opt.label}
+                  </button>
+                ))}
+              </div>
+              {diningError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Pilih jenis pesanan</p>}
+            </div>
 
             <div className="mb-4">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">

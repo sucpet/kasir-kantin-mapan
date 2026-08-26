@@ -36,6 +36,9 @@ export interface Order {
   payment_method: string | null
   source: 'kasir' | 'customer'
   customer_phone: string | null
+  dining_type: string | null
+  pending_redeem: number
+  points_to_earn: number
   order_items?: OrderItem[]
 }
 

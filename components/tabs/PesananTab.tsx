@@ -175,6 +175,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
                   <div className={`text-[14px] font-bold ${isDone ? 'text-[var(--color-muted)]' : ''}`}>👤 {order.customer_name}</div>
                   <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
                     {fmtTime(order.created_at)} · {itemCount} item
+                    {order.dining_type && ` · ${order.dining_type === 'dibungkus' ? '🥡 Bungkus' : '🍽️ Di Tempat'}`}
                     {(isPaid || isDone) && order.payment_method && ` · ${order.payment_method}`}
                   </div>
                 </div>

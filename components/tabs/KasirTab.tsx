@@ -28,6 +28,8 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
   const [payMethodError, setPayMethodError] = useState(false)
+  const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
+  const [diningError, setDiningError] = useState(false)
 
   useEffect(() => {
     fetchMenu()
@@ -88,6 +90,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   function doClearCart() {
     setCart([])
     setCustomerName('')
+    setDiningType(null)
     setConfirmClear(false)
   }
 
@@ -102,6 +105,8 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     setPaidAmount('')
     setPaymentMethod('')
     setPayMethodError(false)
+    setDiningType(null)
+    setDiningError(false)
     setPayModal(mode)
   }
 
@@ -111,8 +116,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   async function confirmPay(mode: 'bayar' | 'tab') {
     if (!cart.length) return
     if (!customerName.trim()) { setModalNameError(true); return }
+    if (!diningType) { setDiningError(true); return }
     if (mode === 'bayar' && !paymentMethod) { setPayMethodError(true); return }
     setModalNameError(false)
+    setDiningError(false)
     setPayMethodError(false)
     setLoading(true)
     const cust = customerName.trim()
@@ -127,6 +134,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         paid_at: mode === 'bayar' ? new Date().toISOString() : null,
         payment_method: mode === 'bayar' ? paymentMethod : null,
         source: 'kasir',
+        dining_type: diningType,
       })
       .select()
       .single()
@@ -367,6 +375,29 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
               <span>TOTAL</span><span>{rp(total)}</span>
             </div>
+          </div>
+
+          <div className="mb-3">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Jenis Pesanan *</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { id: 'makan_ditempat', label: 'Di Tempat', icon: '🍽️' },
+                { id: 'dibungkus', label: 'Dibungkus', icon: '🥡' },
+              ] as const).map(opt => (
+                <button key={opt.id} type="button"
+                  onClick={() => { setDiningType(opt.id); setDiningError(false) }}
+                  className={`py-2 rounded-lg text-[12px] font-bold border-[1.5px] transition-all
+                    ${diningType === opt.id
+                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                      : diningError
+                      ? 'border-[var(--color-danger)] text-[var(--color-muted)]'
+                      : 'bg-[var(--color-surface2)] border-[var(--color-border)] text-[var(--color-muted)]'
+                    }`}>
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+            {diningError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Pilih jenis pesanan</p>}
           </div>
 
           {payModal === 'bayar' && (
