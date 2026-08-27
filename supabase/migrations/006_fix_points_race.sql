@@ -2,6 +2,12 @@
 -- Masalah: create_order membaca customer.points tanpa lock dan tanpa
 -- memperhitungkan pending_redeem dari order open yang belum dikonfirmasi.
 
+-- Drop semua versi lama create_order agar tidak ambigu
+drop function if exists public.create_order(text,text,text,text,integer,text,jsonb);
+drop function if exists public.create_order(text,text,text,text,integer,jsonb);
+drop function if exists public.create_order(text,text,text,text,jsonb);
+drop function if exists public.create_order cascade;
+
 create or replace function public.create_order(
   p_customer_name  text,
   p_customer_phone text,
