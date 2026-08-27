@@ -12,6 +12,8 @@ export interface MenuItem {
   options: MenuOption[]
   image_url: string | null
   created_at: string
+  stock: number | null
+  stock_threshold: number
 }
 
 export interface OrderItem {

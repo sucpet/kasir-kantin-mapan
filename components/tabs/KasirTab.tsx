@@ -259,26 +259,37 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
               <p className="text-xs">Tambah di tab Menu</p>
             </div>
           )}
-          {filtered.map(item => (
-            <button
-              key={item.id}
-              onClick={() => addToCart(item)}
-              disabled={!item.available}
-              className={`bg-white border-[1.5px] border-[var(--color-border)] rounded-[10px] p-3 text-left flex flex-col gap-1
-                transition-all shadow-[0_1px_2px_rgba(20,35,25,0.08)]
-                ${item.available
-                  ? 'cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] hover:-translate-y-px hover:shadow-md active:scale-95'
-                  : 'opacity-40 cursor-not-allowed'
-                }`}
-            >
-              <span className="text-[12px] font-bold leading-tight">{item.name}</span>
-              <span className="text-[12px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</span>
-              <span className="text-[10px] text-[var(--color-muted)]">{item.category}</span>
-              {(item.options ?? []).length > 0 && (
-                <span className="text-[9px] text-[var(--color-primary)] font-semibold opacity-70">▾ ada pilihan</span>
-              )}
-            </button>
-          ))}
+          {filtered.map(item => {
+            const isHabis = item.stock !== null && item.stock === 0
+            const isMenipis = item.stock !== null && item.stock > 0 && item.stock <= item.stock_threshold
+            return (
+              <button
+                key={item.id}
+                onClick={() => addToCart(item)}
+                disabled={!item.available}
+                className={`bg-white border-[1.5px] border-[var(--color-border)] rounded-[10px] p-3 text-left flex flex-col gap-1 relative
+                  transition-all shadow-[0_1px_2px_rgba(20,35,25,0.08)]
+                  ${item.available
+                    ? 'cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] hover:-translate-y-px hover:shadow-md active:scale-95'
+                    : 'opacity-40 cursor-not-allowed'
+                  }
+                  ${isHabis ? 'border-[var(--color-danger-light)] bg-[var(--color-danger-light)]/30' : ''}`}
+              >
+                <span className="text-[12px] font-bold leading-tight">{item.name}</span>
+                <span className="text-[12px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</span>
+                <span className="text-[10px] text-[var(--color-muted)]">{item.category}</span>
+                {(item.options ?? []).length > 0 && (
+                  <span className="text-[9px] text-[var(--color-primary)] font-semibold opacity-70">▾ ada pilihan</span>
+                )}
+                {isHabis && (
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-danger)] text-white">Habis</span>
+                )}
+                {isMenipis && (
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-white">{item.stock}</span>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import KasirTab from './tabs/KasirTab'
 import PesananTab from './tabs/PesananTab'
 import MenuTab from './tabs/MenuTab'
 import RekapTab from './tabs/RekapTab'
+import StokTab from './tabs/StokTab'
 import { useToast } from './Toast'
 import { supabase } from '@/lib/supabase'
 import QRModal from './QRModal'
@@ -13,12 +14,13 @@ import SettingsModal from './SettingsModal'
 import { Order } from '@/lib/types'
 import { rp } from '@/lib/utils'
 
-type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap'
+type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap' | 'stok'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'kasir',   label: 'Kasir',   icon: '🛒' },
   { id: 'pesanan', label: 'Pesanan', icon: '📋' },
   { id: 'menu',    label: 'Menu',    icon: '🍽️' },
+  { id: 'stok',    label: 'Stok',    icon: '📦' },
   { id: 'rekap',   label: 'Rekap',   icon: '📊' },
 ]
 
@@ -183,6 +185,7 @@ export default function App() {
         {tab === 'kasir'   && <KasirTab   onToast={toast} onOrderCreated={handleOrderCreated} />}
         {tab === 'pesanan' && <PesananTab onToast={toast} refreshKey={refreshKey} onOrderSettled={handleOrderCreated} />}
         {tab === 'menu'    && <MenuTab    onToast={toast} />}
+        {tab === 'stok'    && <StokTab    onToast={toast} />}
         {tab === 'rekap'   && <RekapTab />}
       </div>
 

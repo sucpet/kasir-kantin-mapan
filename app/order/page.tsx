@@ -199,7 +199,12 @@ export default function OrderPage() {
     setCategories([...new Set(data.map((i: MenuItem) => i.category))])
   }
 
+  function isHabis(item: MenuItem): boolean {
+    return item.stock !== null && item.stock === 0
+  }
+
   function tapped(item: MenuItem) {
+    if (isHabis(item)) return
     const opts = item.options ?? []
     if (opts.length > 0) {
       setPendingOpts({})
@@ -602,14 +607,21 @@ export default function OrderPage() {
           {filtered.map(item => {
             const cartItem = cart.find(c => c.menuId === item.id)
             const inCart = cartItem && (item.options ?? []).length === 0 ? cartItem.qty : 0
+            const habis = isHabis(item)
             return (
               <div key={item.id}
-                className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-[12px] overflow-hidden flex flex-col">
+                className={`bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-[12px] overflow-hidden flex flex-col relative
+                  ${habis ? 'opacity-60' : ''}`}>
                 {item.image_url ? (
                   <img src={item.image_url} alt={item.name} className="w-full aspect-[4/3] object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-full aspect-[4/3] bg-[var(--color-surface2)] flex items-center justify-center flex-shrink-0 text-3xl">
                     🍽️
+                  </div>
+                )}
+                {habis && (
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--color-danger)] text-white">
+                    Habis
                   </div>
                 )}
                 <div className="p-3 flex flex-col flex-1">
@@ -621,7 +633,11 @@ export default function OrderPage() {
                   )}
                 </div>
                 <div className="mt-2">
-                {inCart > 0 ? (
+                {habis ? (
+                  <div className="w-full py-1.5 rounded-lg text-[12px] font-bold bg-[var(--color-surface2)] text-[var(--color-muted)] text-center border border-[var(--color-border)]">
+                    Stok Habis
+                  </div>
+                ) : inCart > 0 ? (
                   <div className="flex items-center justify-between">
                     <button onClick={() => adjustQty(item.id, -1)}
                       className="w-7 h-7 rounded-full border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] flex items-center justify-center hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors">
