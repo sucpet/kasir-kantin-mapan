@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { MenuItem, MenuOption } from '@/lib/types'
-import { rp, orderSum } from '@/lib/utils'
+import { MenuItem, MenuOption, Order } from '@/lib/types'
+import { rp, orderSum, fmtTime } from '@/lib/utils'
 
 type CartItem = {
   menuId: string
@@ -87,6 +87,10 @@ export default function OrderPage() {
   const [orderStatus, setOrderStatus] = useState<'open' | 'paid' | 'done'>('open')
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
+  const [activeTab, setActiveTab] = useState<'menu' | 'riwayat'>('menu')
+  const [orderHistory, setOrderHistory] = useState<Order[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [reorderMsg, setReorderMsg] = useState('')
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -121,6 +125,10 @@ export default function OrderPage() {
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [submitted, orderId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (activeTab === 'riwayat' && phone) fetchHistory()
+  }, [activeTab, phone]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Session expires 5 minutes after login — show login screen again, no page reload
   useEffect(() => {
@@ -289,6 +297,46 @@ export default function OrderPage() {
     setDiningError(false)
     setShowCart(false)
     setSubmitted(true)
+  }
+
+  function fmtDateTime(iso: string) {
+    const d = new Date(iso)
+    const today = new Date()
+    const isToday = d.toDateString() === today.toDateString()
+    if (isToday) return 'Hari ini ' + fmtTime(iso)
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ' ' + fmtTime(iso)
+  }
+
+  async function fetchHistory() {
+    if (!phone) return
+    setLoadingHistory(true)
+    const { data } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('customer_phone', phone)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (data) setOrderHistory(data)
+    setLoadingHistory(false)
+  }
+
+  function reorder(histOrder: Order) {
+    const items = histOrder.order_items ?? []
+    let added = 0
+    for (const oi of items) {
+      if (!oi.menu_item_id) continue
+      const mi = menu.find(m => m.id === oi.menu_item_id && m.available && !isHabis(m))
+      if (!mi) continue
+      for (let i = 0; i < oi.qty; i++) doAddToCart(mi, {})
+      added++
+    }
+    if (added > 0) {
+      setActiveTab('menu')
+      setReorderMsg(`${added} jenis item ditambahkan ke keranjang 🛒`)
+    } else {
+      setReorderMsg('Item tidak tersedia atau habis')
+    }
+    setTimeout(() => setReorderMsg(''), 3000)
   }
 
   const authHeader = (
@@ -553,10 +601,16 @@ export default function OrderPage() {
               </div>
             )}
             <button
-              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0); setOrderId(null); setOrderStatus('open') }}
-              className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold hover:bg-[var(--color-primary-light)] transition-colors"
+              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0); setOrderId(null); setOrderStatus('open'); setActiveTab('menu') }}
+              className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[13px] font-bold mb-2"
             >
-              Pesan Lagi
+              🍽️ Pesan Lagi
+            </button>
+            <button
+              onClick={() => { setSubmitted(false); setOrderId(null); setOrderStatus('open'); setActiveTab('riwayat') }}
+              className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] text-[13px] font-semibold hover:text-[var(--color-text)] transition-colors"
+            >
+              📋 Lihat Riwayat
             </button>
           </div>
         </div>
@@ -582,8 +636,20 @@ export default function OrderPage() {
         </span>
       </div>
 
+      {/* Tab bar */}
+      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex flex-shrink-0">
+        {(['menu', 'riwayat'] as const).map(t => (
+          <button key={t} onClick={() => setActiveTab(t)}
+            className={`flex-1 py-2.5 text-[13px] font-bold relative transition-colors
+              ${activeTab === t ? 'text-[var(--color-primary)]' : 'text-[var(--color-muted)]'}`}>
+            {t === 'menu' ? '🍽️ Menu' : '📋 Riwayat'}
+            {activeTab === t && <span className="absolute bottom-0 left-8 right-8 h-[2px] bg-[var(--color-primary)] rounded-t-sm" />}
+          </button>
+        ))}
+      </div>
+
       {/* Category bar — full-width bg, content centered */}
-      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
+      {activeTab === 'menu' && <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
         <div
           className="max-w-2xl mx-auto px-3 py-2 flex gap-2"
           style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
@@ -598,10 +664,10 @@ export default function OrderPage() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Menu grid — constrained width on desktop */}
-      <div className="flex-1 overflow-y-auto">
+      {activeTab === 'menu' && <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-3 pb-24">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {filtered.map(item => {
@@ -662,7 +728,79 @@ export default function OrderPage() {
           })}
         </div>
         </div>
-      </div>
+      </div>}
+
+      {/* Riwayat tab */}
+      {activeTab === 'riwayat' && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-2xl mx-auto p-4 pb-8">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[13px] font-extrabold text-[var(--color-text)]">Riwayat Pesanan</span>
+              <button onClick={fetchHistory} className="text-[11px] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+                🔄 Refresh
+              </button>
+            </div>
+
+            {reorderMsg && (
+              <div className="mb-3 px-3 py-2.5 rounded-xl bg-[var(--color-primary-light)] border border-[var(--color-primary)] text-[12px] font-bold text-[var(--color-primary)] text-center">
+                {reorderMsg}
+              </div>
+            )}
+
+            {loadingHistory ? (
+              <div className="text-center py-12 text-[var(--color-muted)] text-[13px]">Memuat...</div>
+            ) : orderHistory.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-3">📋</div>
+                <p className="text-[14px] font-bold text-[var(--color-text)]">Belum ada riwayat</p>
+                <p className="text-[12px] text-[var(--color-muted)] mt-1">Pesananmu akan muncul di sini</p>
+              </div>
+            ) : (
+              orderHistory.map(o => {
+                const isActive = o.status === 'open' || o.status === 'paid'
+                return (
+                  <div key={o.id} className={`bg-[var(--color-surface)] border-[1.5px] rounded-xl mb-3 overflow-hidden
+                    ${isActive ? 'border-[var(--color-primary)]' : 'border-[var(--color-border)]'}`}>
+                    {/* Header */}
+                    <div className={`px-4 py-3 flex items-center justify-between
+                      ${isActive ? 'bg-[var(--color-primary-light)]' : ''}`}>
+                      <div>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          o.status === 'done' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]'
+                          : o.status === 'paid' ? 'bg-[var(--color-info-light)] text-[var(--color-info)]'
+                          : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {o.status === 'done' ? '✅ Selesai' : o.status === 'paid' ? '🍳 Sedang Disiapkan' : '⏳ Menunggu Konfirmasi'}
+                        </span>
+                        <div className="text-[11px] text-[var(--color-muted)] mt-1">{fmtDateTime(o.created_at)}</div>
+                      </div>
+                      <div className="text-[15px] font-extrabold tabular-nums text-[var(--color-primary)]">{rp(o.total)}</div>
+                    </div>
+                    {/* Items */}
+                    <div className="px-4 py-2.5 border-t border-[var(--color-border)]">
+                      {(o.order_items ?? []).map(i => (
+                        <div key={i.id} className="flex justify-between text-[12px] py-0.5">
+                          <span className="text-[var(--color-text)]">{i.name} ×{i.qty}</span>
+                          <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Order ulang (only past orders) */}
+                    {!isActive && (
+                      <div className="px-4 pb-3 pt-1">
+                        <button onClick={() => reorder(o)}
+                          className="w-full py-2 rounded-xl border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[12px] font-bold hover:bg-[var(--color-primary-light)] transition-colors">
+                          🔄 Order Ulang
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating cart button */}
       {cartCount > 0 && !showCart && (
