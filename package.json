@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "keepalive": "node --env-file=.env.local scripts/keepalive.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
