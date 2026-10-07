@@ -11,6 +11,9 @@ jobs:
   ping:
     name: Ping Supabase DB
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
@@ -27,3 +30,12 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      # Repo publik: GitHub men-disable scheduled workflow setelah 60 hari tanpa aktivitas.
+      # Enable ulang tiap run untuk reset timer itu (tanpa commit dummy).
+      # ponytail: tidak ada jaminan resmi GitHub; kalau tetap ter-disable, ganti ke commit file timestamp.
+      - name: Reset timer 60 hari GitHub
+        if: always()
+        run: gh api -X PUT repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable
+        env:
+          GH_TOKEN: ${{ github.token }}
