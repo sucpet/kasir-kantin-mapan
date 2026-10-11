@@ -34,7 +34,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     const { data } = await supabase
       .from('orders')
       .select('*, order_items(*)')
-      .gte('created_at', todayStart.toISOString())
+      .or(`created_at.gte.${todayStart.toISOString()},status.eq.open`)
       .order('created_at', { ascending: false })
     if (data) {
       const sorted = [...data].sort(
