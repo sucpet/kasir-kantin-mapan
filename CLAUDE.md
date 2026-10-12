@@ -10,14 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # start dev server at localhost:3000
 npm run build        # production build
 npm run lint         # ESLint
-
-npm run test                        # run all Playwright tests (headless)
-npm run test:ui                     # Playwright UI mode
-npm run test:headed                 # run tests in headed browser
-npx playwright test tests/order-page.spec.ts   # run a single test file
+npx tsc --noEmit     # typecheck
 ```
-
-Tests require the dev server — Playwright starts it automatically via `webServer` config if not already running.
 
 ## Environment
 
@@ -82,4 +76,4 @@ The `customers` table and points logic exist in the DB schema (`supabase/schema.
 
 ### Testing
 
-Tests live in `tests/` and use fixtures from `tests/helpers/fixtures.ts`. Fixtures intercept Supabase REST and realtime requests via `page.route()` (no real DB calls in tests). `injectSession()` seeds `sessionStorage` to bypass the customer phone-login flow.
+No test suite. Verify changes with `npx tsc --noEmit` and `npm run build` (the build needs the Supabase env vars set; dummy values work).
