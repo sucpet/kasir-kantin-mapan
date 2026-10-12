@@ -101,30 +101,27 @@ export default function OrderPage() {
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
-  // Realtime: track submitted order status live
+  // Poll status (anon tidak bisa subscribe realtime ke tabel orders karena RLS)
   useEffect(() => {
-    if (!submitted || !orderId) return
-    const ch = supabase
-      .channel(`order-${orderId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        async (payload) => {
-          const status = (payload.new as { status: string }).status as 'open' | 'paid' | 'done'
-          setOrderStatus(status)
-          if ((status === 'paid' || status === 'done') && phone) {
-            const { data } = await supabase.from('customers').select('points').eq('phone', phone).maybeSingle()
-            if (data) {
-              setCustomer(prev => {
-                const updated = prev ? { ...prev, points: data.points } : null
-                if (updated) saveSession(phone, updated)
-                return updated
-              })
-              setLastPointsTotal(data.points)
-            }
-          }
-        })
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [submitted, orderId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!submitted || !orderId || orderStatus === 'done') return
+    const t = setInterval(async () => {
+      const { data: status } = await supabase.rpc('order_status', { p_order_id: orderId })
+      if (!status || status === orderStatus) return
+      setOrderStatus(status)
+      if ((status === 'paid' || status === 'done') && phone) {
+        const { data } = await supabase.rpc('customer_login', { p_phone: phone })
+        if (data) {
+          setCustomer(prev => {
+            const updated = prev ? { ...prev, points: data.points } : null
+            if (updated) saveSession(phone, updated)
+            return updated
+          })
+          setLastPointsTotal(data.points)
+        }
+      }
+    }, 5000)
+    return () => clearInterval(t)
+  }, [submitted, orderId, orderStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeTab === 'riwayat' && phone) fetchHistory()
@@ -162,7 +159,7 @@ export default function OrderPage() {
     }
     setAuthLoading(true)
     setLoginError('')
-    const { data } = await supabase.from('customers').select('name, points').eq('phone', norm).maybeSingle()
+    const { data } = await supabase.rpc('customer_login', { p_phone: norm })
     setAuthLoading(false)
     if (data) {
       setPhone(norm)
@@ -184,7 +181,7 @@ export default function OrderPage() {
     if (!norm.startsWith('08') || norm.length < 10) { setRegisterError('Format nomor tidak valid (cth: 08123456789)'); return }
     setAuthLoading(true)
     setRegisterError('')
-    const { error } = await supabase.from('customers').insert({ phone: norm, name: registerName.trim(), points: 0 })
+    const { error } = await supabase.rpc('customer_register', { p_phone: norm, p_name: registerName.trim() })
     setAuthLoading(false)
     if (error) { setRegisterError('Nomor sudah terdaftar atau terjadi kesalahan'); return }
     const newCustomer = { name: registerName.trim(), points: 0 }
@@ -310,12 +307,7 @@ export default function OrderPage() {
   async function fetchHistory() {
     if (!phone) return
     setLoadingHistory(true)
-    const { data } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .eq('customer_phone', phone)
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const { data } = await supabase.rpc('customer_orders', { p_phone: phone })
     if (data) setOrderHistory(data)
     setLoadingHistory(false)
   }
