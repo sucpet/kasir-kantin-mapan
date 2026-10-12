@@ -41,6 +41,8 @@ export interface Order {
   dining_type: string | null
   pending_redeem: number
   points_to_earn: number
+  served_at: string | null
+  queue_no: number | null
   order_items?: OrderItem[]
 }
 
