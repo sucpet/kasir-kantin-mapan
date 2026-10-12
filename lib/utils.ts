@@ -41,3 +41,24 @@ function p2(n: number): string {
 export function orderSum(items: { price: number; qty: number }[]): number {
   return items.reduce((s, i) => s + i.price * i.qty, 0)
 }
+
+type QueueOrder = { status: string; served_at: string | null }
+
+// 'done' = data lama (lunas + disajikan)
+export function inQueue(o: QueueOrder): boolean {
+  return o.status !== 'done' && (o.status === 'open' || !o.served_at)
+}
+
+export function isServed(o: QueueOrder): boolean {
+  return o.status === 'done' || !!o.served_at
+}
+
+// Kode unik (points_to_earn) hanya untuk mencocokkan QRIS pesanan mandiri; tunai cukup total
+export function qrisAmount(o: { total: number; points_to_earn: number; source: string }): number {
+  return o.source === 'customer' ? o.total + o.points_to_earn : o.total
+}
+
+// Negatif = uang kurang
+export function kembalian(due: number, received: number): number {
+  return received - due
+}

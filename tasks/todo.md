@@ -11,7 +11,7 @@
   - Verify: tes PGlite (nomor berurutan dan mulai dari 1 lagi besok, stok berkurang sekali saat dibuat dan tidak lagi saat lunas, baris `done` tetap); `tsc`. Calvin menjalankan SQL; saya cek RPC dari luar.
   - Files: `supabase/migrations/009_kasir_simpel.sql`, `lib/types.ts`
 
-- [ ] **T2: Layar Antrian + PayModal**
+- [x] **T2: Layar Antrian + PayModal**
   - Acceptance:
     - Grid kartu (2 kolom landscape). Setiap kartu menampilkan nomor antrian, nama (jika bukan "Tamu"), semua item ×jumlah, catatan, label besar Makan di Tempat/Bungkus, penanda 📱 untuk pesanan mandiri, dan status "Sedang disiapkan / Sudah disajikan" + "Belum bayar / Lunas".
     - Tombol besar **✅ Sudah Disajikan** (mengisi `served_at`) dan **💰 Lunas** (membuka PayModal).

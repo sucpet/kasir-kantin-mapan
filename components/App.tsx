@@ -27,7 +27,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 export default function App() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('kasir')
-  const [openCount, setOpenCount] = useState(0)
+  const [queueCount, setQueueCount] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
   const [time, setTime] = useState('')
   const [userEmail, setUserEmail] = useState('')
@@ -76,11 +76,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetchOpenCount()
+    fetchQueueCount()
     const sub = supabase
       .channel('open-count')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
-        fetchOpenCount()
+        fetchQueueCount()
         const newOrder = payload.new as Order
         if (newOrder.source === 'customer' && newOrder.status === 'open') {
           setTimeout(async () => {
@@ -93,23 +93,23 @@ export default function App() {
           }, 800)
         }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, fetchOpenCount)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, fetchOpenCount)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, fetchQueueCount)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, fetchQueueCount)
       .subscribe()
     return () => { supabase.removeChannel(sub) }
   }, [])
 
-  async function fetchOpenCount() {
+  async function fetchQueueCount() {
     const { count } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'open')
-    setOpenCount(count ?? 0)
+      .or('status.eq.open,and(status.eq.paid,served_at.is.null)')
+    setQueueCount(count ?? 0)
   }
 
   function handleOrderCreated() {
     setRefreshKey(k => k + 1)
-    fetchOpenCount()
+    fetchQueueCount()
   }
 
   return (
@@ -171,9 +171,9 @@ export default function App() {
             {tab === t.id && (
               <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[var(--color-primary)] rounded-t-sm" />
             )}
-            {t.id === 'pesanan' && openCount > 0 && (
+            {t.id === 'pesanan' && queueCount > 0 && (
               <span className="absolute top-1.5 right-[calc(50%-18px)] bg-[var(--color-danger)] text-white text-[length:calc(10px*var(--fs))] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
-                {openCount}
+                {queueCount}
               </span>
             )}
           </button>
