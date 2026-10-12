@@ -153,8 +153,8 @@ export default function MenuTab({ onToast }: MenuTabProps) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="bg-white border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <span className="text-[14px] font-extrabold">Kelola Menu</span>
-        <button onClick={openNew} className="px-3 py-1.5 text-[12px] font-bold bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-mid)] transition-colors">
+        <span className="text-[length:calc(14px*var(--fs))] font-extrabold">Kelola Menu</span>
+        <button onClick={openNew} className="px-3 py-1.5 text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-mid)] transition-colors">
           + Tambah Item
         </button>
       </div>
@@ -163,7 +163,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {['Semua', ...categories].map(c => (
             <button key={c} onClick={() => setActiveCat(c)}
-              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex-shrink-0 border-[1.5px] transition-all
+              className={`px-3 py-1.5 rounded-full text-[length:calc(12px*var(--fs))] font-semibold whitespace-nowrap flex-shrink-0 border-[1.5px] transition-all
                 ${activeCat === c ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white' : 'bg-white border-[var(--color-border)] text-[var(--color-muted)]'}`}>
               {c}
             </button>
@@ -175,7 +175,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--color-muted)]">
             <span className="text-4xl">🍽️</span>
-            <span className="text-[13px] font-bold text-[var(--color-text)]">Belum ada menu</span>
+            <span className="text-[length:calc(13px*var(--fs))] font-bold text-[var(--color-text)]">Belum ada menu</span>
             <span className="text-xs">Klik &quot;+ Tambah Item&quot; untuk mulai</span>
           </div>
         )}
@@ -184,19 +184,20 @@ export default function MenuTab({ onToast }: MenuTabProps) {
             {item.image_url ? (
               <img src={item.image_url} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-[var(--color-border)]" />
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] flex items-center justify-center text-[16px] flex-shrink-0">🍽️</div>
+              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] flex items-center justify-center text-[length:calc(16px*var(--fs))] flex-shrink-0">🍽️</div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold">{item.name}</div>
-              <div className="text-[11px] text-[var(--color-muted)]">{item.category}
+              <div className="text-[length:calc(13px*var(--fs))] font-bold">{item.name}</div>
+              <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">{item.category}
                 {(item.options ?? []).length > 0 && (
-                  <span className="ml-1.5 text-[10px] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1.5 py-0.5 rounded-full font-semibold">
+                  <span className="ml-1.5 text-[length:calc(10px*var(--fs))] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1.5 py-0.5 rounded-full font-semibold">
                     {(item.options ?? []).map(o => o.name).join(', ')}
                   </span>
                 )}
               </div>
+              <div className="sm:hidden text-[length:calc(13px*var(--fs))] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</div>
             </div>
-            <div className="text-[14px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</div>
+            <div className="hidden sm:block flex-shrink-0 whitespace-nowrap text-[length:calc(14px*var(--fs))] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => toggleAvail(item)}
@@ -216,48 +217,48 @@ export default function MenuTab({ onToast }: MenuTabProps) {
 
       {showEditor && (
         <Modal onClose={() => setShowEditor(false)}>
-          <h2 className="text-[16px] font-extrabold text-center mb-4">
+          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-4">
             {editorItem === 'new' ? '➕ Tambah Menu' : '✏️ Edit Menu'}
           </h2>
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Menu *</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Menu *</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="cth: Ayam Goreng"
-              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]" />
+              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)]" />
           </div>
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Harga *</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Harga *</label>
             <input type="number" inputMode="numeric" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
               placeholder="cth: 15000"
-              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]" />
+              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)]" />
           </div>
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Kategori</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Kategori</label>
             <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)] bg-white cursor-pointer">
+              className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)] bg-white cursor-pointer">
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
               <option value="__new__">+ Kategori baru...</option>
             </select>
           </div>
           {form.category === '__new__' && (
             <div className="mb-3">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Kategori Baru</label>
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Kategori Baru</label>
               <input value={form.newCat} onChange={e => setForm(f => ({ ...f, newCat: e.target.value }))}
                 placeholder="cth: Dessert"
-                className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]" />
+                className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)]" />
             </div>
           )}
 
           {/* Foto menu */}
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Foto (opsional)</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Foto (opsional)</label>
             {imagePreview ? (
               <div className="relative">
                 <img src={imagePreview} alt="" className="w-full h-32 object-cover rounded-xl border border-[var(--color-border)]" />
                 <button
                   type="button"
                   onClick={removeImage}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center hover:bg-black/70 transition-colors"
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white text-[length:calc(11px*var(--fs))] flex items-center justify-center hover:bg-black/70 transition-colors"
                 >
                   ✕
                 </button>
@@ -265,7 +266,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
             ) : (
               <label className="flex flex-col items-center justify-center w-full h-24 border-[1.5px] border-dashed border-[var(--color-border)] rounded-xl cursor-pointer hover:border-[var(--color-primary)] transition-colors bg-[var(--color-surface2)]">
                 <span className="text-2xl mb-1">📷</span>
-                <span className="text-[11px] text-[var(--color-muted)] font-medium">Klik untuk pilih foto</span>
+                <span className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] font-medium">Klik untuk pilih foto</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
               </label>
             )}
@@ -274,13 +275,13 @@ export default function MenuTab({ onToast }: MenuTabProps) {
           {/* Pilihan / Varian */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Pilihan (opsional)</label>
-              <button onClick={addOptGroup} className="text-[11px] font-bold text-[var(--color-primary)] hover:underline">
+              <label className="text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)]">Pilihan (opsional)</label>
+              <button onClick={addOptGroup} className="text-[length:calc(11px*var(--fs))] font-bold text-[var(--color-primary)] hover:underline">
                 + Tambah Pilihan
               </button>
             </div>
             {formOpts.length === 0 && (
-              <p className="text-[11px] text-[var(--color-muted)] italic">cth: Potongan → Paha, Dada</p>
+              <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] italic">cth: Potongan → Paha, Dada</p>
             )}
             {formOpts.map((group, gi) => (
               <div key={gi} className="mb-2 p-2.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-lg">
@@ -289,15 +290,15 @@ export default function MenuTab({ onToast }: MenuTabProps) {
                     value={group.name}
                     onChange={e => updateGroupName(gi, e.target.value)}
                     placeholder="Nama pilihan (cth: Potongan)"
-                    className="flex-1 px-2.5 py-1.5 border-[1.5px] border-[var(--color-border)] rounded-lg text-[12px] outline-none focus:border-[var(--color-primary)] bg-white"
+                    className="flex-1 px-2.5 py-1.5 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(12px*var(--fs))] outline-none focus:border-[var(--color-primary)] bg-white"
                   />
-                  <button onClick={() => removeGroup(gi)} className="text-[var(--color-danger)] text-[13px] px-1.5 hover:opacity-70">✕</button>
+                  <button onClick={() => removeGroup(gi)} className="text-[var(--color-danger)] text-[length:calc(13px*var(--fs))] px-1.5 hover:opacity-70">✕</button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {group.choices.map((c, ci) => (
-                    <span key={ci} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--color-primary-light)] text-[var(--color-primary)] text-[11px] font-semibold rounded-full border border-[var(--color-primary)]/20">
+                    <span key={ci} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--color-primary-light)] text-[var(--color-primary)] text-[length:calc(11px*var(--fs))] font-semibold rounded-full border border-[var(--color-primary)]/20">
                       {c}
-                      <button onClick={() => removeChoice(gi, ci)} className="opacity-60 hover:opacity-100 text-[10px] leading-none">✕</button>
+                      <button onClick={() => removeChoice(gi, ci)} className="opacity-60 hover:opacity-100 text-[length:calc(10px*var(--fs))] leading-none">✕</button>
                     </span>
                   ))}
                 </div>
@@ -307,9 +308,9 @@ export default function MenuTab({ onToast }: MenuTabProps) {
                     onChange={e => updateNewChoice(gi, e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChoice(gi) } }}
                     placeholder="Tambah pilihan..."
-                    className="flex-1 px-2.5 py-1.5 border-[1.5px] border-[var(--color-border)] rounded-lg text-[12px] outline-none focus:border-[var(--color-primary)] bg-white"
+                    className="flex-1 px-2.5 py-1.5 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(12px*var(--fs))] outline-none focus:border-[var(--color-primary)] bg-white"
                   />
-                  <button onClick={() => addChoice(gi)} className="px-2.5 py-1.5 text-[12px] font-bold bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-mid)] transition-colors">
+                  <button onClick={() => addChoice(gi)} className="px-2.5 py-1.5 text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-mid)] transition-colors">
                     +
                   </button>
                 </div>
@@ -318,11 +319,11 @@ export default function MenuTab({ onToast }: MenuTabProps) {
           </div>
 
           <button onClick={saveItem} disabled={saving}
-            className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
+            className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
             {saving ? 'Menyimpan...' : '💾 Simpan'}
           </button>
           <button onClick={() => setShowEditor(false)}
-            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+            className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
         </Modal>

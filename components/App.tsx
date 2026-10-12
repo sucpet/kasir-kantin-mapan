@@ -117,41 +117,41 @@ export default function App() {
       {/* Header */}
       <header className="bg-[var(--color-primary)] text-white px-4 py-2.5 flex items-center justify-between flex-shrink-0">
         <div>
-          <div className="text-[10px] font-medium tracking-[0.08em] uppercase opacity-60">Point of Sale</div>
-          <div className="text-[16px] font-extrabold tracking-tight">Kasir Kantin Mapan</div>
+          <div className="text-[length:calc(10px*var(--fs))] font-medium tracking-[0.08em] uppercase opacity-60">Point of Sale</div>
+          <div className="text-[length:calc(16px*var(--fs))] font-extrabold tracking-tight leading-tight">Kasir Kantin Mapan</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <div className="text-right hidden sm:block">
-            <div className="text-[13px] tabular-nums opacity-70 font-medium">{time}</div>
-            <div className="text-[10px] opacity-50 truncate max-w-[140px]">{userEmail}</div>
+            <div className="text-[length:calc(13px*var(--fs))] tabular-nums opacity-70 font-medium">{time}</div>
+            <div className="text-[length:calc(10px*var(--fs))] opacity-50 truncate max-w-[calc(140px*var(--fs))]">{userEmail}</div>
           </div>
           <button
             onClick={() => setShowSettings(true)}
             title="Pengaturan"
-            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
           >
-            <Settings size={14} />
+            <Settings size={14} className="size-[calc(14px*var(--fs))]" />
           </button>
           <button
             onClick={() => setShowQR(true)}
             title="QR Pesan Mandiri"
-            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
           >
-            <QrCode size={14} />
+            <QrCode size={14} className="size-[calc(14px*var(--fs))]" />
           </button>
           <button
             onClick={toggleTheme}
             title={isLight ? 'Mode Gelap' : 'Mode Terang'}
-            className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
           >
-            {isLight ? <Moon size={14} /> : <Sun size={14} />}
+            {isLight ? <Moon size={14} className="size-[calc(14px*var(--fs))]" /> : <Sun size={14} className="size-[calc(14px*var(--fs))]" />}
           </button>
           <button
             onClick={handleLogout}
             title="Keluar"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-[12px] font-semibold"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-[length:calc(12px*var(--fs))] font-semibold"
           >
-            <LogOut size={14} />
+            <LogOut size={14} className="size-[calc(14px*var(--fs))]" />
             <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
@@ -163,16 +163,16 @@ export default function App() {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium relative transition-colors
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[length:calc(11px*var(--fs))] font-medium relative transition-colors
               ${tab === t.id ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-muted)]'}`}
           >
-            <span className="text-[18px] leading-none">{t.icon}</span>
+            <span className="text-[length:calc(18px*var(--fs))] leading-none">{t.icon}</span>
             <span>{t.label}</span>
             {tab === t.id && (
               <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[var(--color-primary)] rounded-t-sm" />
             )}
             {t.id === 'pesanan' && openCount > 0 && (
-              <span className="absolute top-1.5 right-[calc(50%-18px)] bg-[var(--color-danger)] text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+              <span className="absolute top-1.5 right-[calc(50%-18px)] bg-[var(--color-danger)] text-white text-[length:calc(10px*var(--fs))] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
                 {openCount}
               </span>
             )}
@@ -198,31 +198,31 @@ export default function App() {
           <div className="bg-[var(--color-surface)] border-[1.5px] border-[var(--color-border)] rounded-2xl p-5 w-full max-w-sm shadow-2xl">
             <div className="text-center mb-4">
               <div className="text-4xl mb-2">🛎️</div>
-              <h2 className="text-[18px] font-extrabold text-[var(--color-text)]">Pesanan Baru!</h2>
-              <p className="text-[13px] text-[var(--color-primary)] font-bold mt-0.5">{newOrderAlert.customer_name}</p>
+              <h2 className="text-[length:calc(18px*var(--fs))] font-extrabold text-[var(--color-text)]">Pesanan Baru!</h2>
+              <p className="text-[length:calc(13px*var(--fs))] text-[var(--color-primary)] font-bold mt-0.5">{newOrderAlert.customer_name}</p>
             </div>
             <div className="bg-[var(--color-surface2)] rounded-xl p-3 mb-4 border border-[var(--color-border)]">
               {newOrderAlert.order_items?.map(i => (
                 <div key={i.id} className="py-0.5">
-                  <div className="flex justify-between text-[12px]">
+                  <div className="flex justify-between text-[length:calc(12px*var(--fs))]">
                     <span className="text-[var(--color-text)]">{i.name} ×{i.qty}</span>
                     <span className="text-[var(--color-muted)] tabular-nums">{rp(i.price * i.qty)}</span>
                   </div>
-                  {i.note && <div className="text-[10px] text-[var(--color-muted)] italic ml-2">→ {i.note}</div>}
+                  {i.note && <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] italic ml-2">→ {i.note}</div>}
                 </div>
               ))}
-              <div className="flex justify-between text-[14px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] text-[var(--color-text)]">
+              <div className="flex justify-between text-[length:calc(14px*var(--fs))] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] text-[var(--color-text)]">
                 <span>Total</span><span className="tabular-nums text-[var(--color-primary)]">{rp(newOrderAlert.total)}</span>
               </div>
             </div>
             <button
               onClick={() => { setNewOrderAlert(null); setTab('pesanan') }}
-              className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[13px] font-bold mb-2 hover:opacity-90 transition-opacity">
+              className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2 hover:opacity-90 transition-opacity">
               📋 Lihat di Pesanan
             </button>
             <button
               onClick={() => setNewOrderAlert(null)}
-              className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[13px] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+              className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[length:calc(13px*var(--fs))] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
               Tutup
             </button>
           </div>

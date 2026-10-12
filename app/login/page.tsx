@@ -35,15 +35,15 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary)] mb-4 shadow-lg">
             <span className="text-3xl">🛒</span>
           </div>
-          <h1 className="text-[22px] font-extrabold text-[var(--color-text)] tracking-tight">Kasir Kantin Mapan</h1>
-          <p className="text-[13px] text-[var(--color-muted)] mt-1">Masuk untuk mengelola kasir</p>
+          <h1 className="text-[length:calc(22px*var(--fs))] font-extrabold text-[var(--color-text)] tracking-tight">Kasir Kantin Mapan</h1>
+          <p className="text-[length:calc(13px*var(--fs))] text-[var(--color-muted)] mt-1">Masuk untuk mengelola kasir</p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(20,35,25,0.10)] p-6">
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
                 Email
               </label>
               <input
@@ -52,12 +52,12 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="admin@kantinku.com"
                 required
-                className="w-full px-3.5 py-2.5 border-[1.5px] border-[var(--color-border)] rounded-xl text-[13px] outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] transition-colors"
+                className="w-full px-3.5 py-2.5 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
                 Password
               </label>
               <input
@@ -66,12 +66,12 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full px-3.5 py-2.5 border-[1.5px] border-[var(--color-border)] rounded-xl text-[13px] outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] transition-colors"
+                className="w-full px-3.5 py-2.5 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] transition-colors"
               />
             </div>
 
             {error && (
-              <div className="bg-[var(--color-danger-light)] text-[var(--color-danger)] text-[12px] font-semibold px-3.5 py-2.5 rounded-lg">
+              <div className="bg-[var(--color-danger-light)] text-[var(--color-danger)] text-[length:calc(12px*var(--fs))] font-semibold px-3.5 py-2.5 rounded-lg">
                 ⚠️ {error}
               </div>
             )}
@@ -79,7 +79,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[14px] font-bold mt-1 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors"
+              className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(14px*var(--fs))] font-bold mt-1 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors"
             >
               {loading ? 'Masuk...' : 'Masuk'}
             </button>

@@ -239,7 +239,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             <button
               key={c}
               onClick={() => setActiveCat(c)}
-              className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex-shrink-0 border-[1.5px] transition-all
+              className={`px-3.5 py-1.5 rounded-full text-[length:calc(12px*var(--fs))] font-semibold whitespace-nowrap flex-shrink-0 border-[1.5px] transition-all
                 ${activeCat === c
                   ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                   : 'bg-white border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
@@ -251,7 +251,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         </div>
 
         {/* Menu grid */}
-        <div className="flex-1 overflow-y-auto p-2.5 grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-2 content-start">
+        <div className="flex-1 overflow-y-auto p-2.5 grid grid-cols-[repeat(auto-fill,minmax(calc(110px*var(--fs)),1fr))] gap-2 content-start">
           {filtered.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-12 text-[var(--color-muted)]">
               <span className="text-4xl mb-2">🍽️</span>
@@ -275,17 +275,17 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                   }
                   ${isHabis ? 'border-[var(--color-danger-light)] bg-[var(--color-danger-light)]/30' : ''}`}
               >
-                <span className="text-[12px] font-bold leading-tight">{item.name}</span>
-                <span className="text-[12px] font-extrabold text-[var(--color-primary)] tabular-nums">{rp(item.price)}</span>
-                <span className="text-[10px] text-[var(--color-muted)]">{item.category}</span>
+                <span className={`text-[length:calc(12px*var(--fs))] font-bold leading-tight ${isHabis ? 'pr-[calc(30px*var(--fs))]' : isMenipis ? 'pr-[calc(14px*var(--fs))]' : ''}`}>{item.name}</span>
+                <span className="text-[length:calc(12px*var(--fs))] font-extrabold text-[var(--color-primary)] tabular-nums whitespace-nowrap">{rp(item.price)}</span>
+                <span className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)]">{item.category}</span>
                 {(item.options ?? []).length > 0 && (
-                  <span className="text-[9px] text-[var(--color-primary)] font-semibold opacity-70">▾ ada pilihan</span>
+                  <span className="text-[length:calc(9px*var(--fs))] text-[var(--color-primary)] font-semibold opacity-70">▾ ada pilihan</span>
                 )}
                 {isHabis && (
-                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-danger)] text-white">Habis</span>
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[length:calc(9px*var(--fs))] font-bold bg-[var(--color-danger)] text-white">Habis</span>
                 )}
                 {isMenipis && (
-                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-white">{item.stock}</span>
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[length:calc(9px*var(--fs))] font-bold bg-amber-400 text-white">{item.stock}</span>
                 )}
               </button>
             )
@@ -294,10 +294,10 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       </div>
 
       {/* Order panel */}
-      <div className="w-full sm:w-[290px] flex-shrink-0 bg-white flex flex-col max-h-[42vh] sm:max-h-none">
+      <div className="w-full sm:w-[calc(290px*var(--fs))] flex-shrink-0 bg-white flex flex-col max-h-[42vh] sm:max-h-none">
         <div className="px-3.5 py-2.5 border-b border-[var(--color-border)] flex-shrink-0 flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Pesanan</span>
-          <button onClick={clearCart} className="text-[11px] font-semibold text-[var(--color-muted)] bg-[var(--color-surface2)] border border-[var(--color-border)] px-2 py-1 rounded-md hover:text-[var(--color-text)] transition-colors">
+          <span className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Pesanan</span>
+          <button onClick={clearCart} className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-muted)] bg-[var(--color-surface2)] border border-[var(--color-border)] px-2 py-1 rounded-md hover:text-[var(--color-text)] transition-colors">
             Bersihkan Pesanan
           </button>
         </div>
@@ -306,25 +306,25 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-[var(--color-muted)] py-6">
               <span className="text-4xl opacity-40">🛒</span>
-              <span className="text-[12px]">Ketuk item menu untuk menambahkan</span>
+              <span className="text-[length:calc(12px*var(--fs))]">Ketuk item menu untuk menambahkan</span>
             </div>
           ) : (
             cart.map(item => (
               <div key={item.cartKey} className="py-2.5 border-b border-[var(--color-border-lt)]">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold leading-tight">{item.name}</div>
-                    <div className="text-[11px] text-[var(--color-muted)] tabular-nums mt-0.5">
+                    <div className="text-[length:calc(12px*var(--fs))] font-semibold leading-tight">{item.name}</div>
+                    <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] tabular-nums mt-0.5">
                       {rp(item.price)} × {item.qty} = {rp(item.price * item.qty)}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => adjustQty(item.cartKey, -1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
-                      <Minus size={10} strokeWidth={3} />
+                    <button onClick={() => adjustQty(item.cartKey, -1)} className="w-[calc(22px*var(--fs))] h-[calc(22px*var(--fs))] rounded-full border-[1.5px] border-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center hover:bg-[var(--color-danger-light)] transition-colors">
+                      <Minus size={10} className="size-[calc(10px*var(--fs))]" strokeWidth={3} />
                     </button>
-                    <span className="text-[13px] font-extrabold min-w-[18px] text-center tabular-nums">{item.qty}</span>
-                    <button onClick={() => adjustQty(item.cartKey, 1)} className="w-[22px] h-[22px] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
-                      <Plus size={10} strokeWidth={3} />
+                    <span className="text-[length:calc(13px*var(--fs))] font-extrabold min-w-[calc(18px*var(--fs))] text-center tabular-nums">{item.qty}</span>
+                    <button onClick={() => adjustQty(item.cartKey, 1)} className="w-[calc(22px*var(--fs))] h-[calc(22px*var(--fs))] rounded-full border-[1.5px] border-[var(--color-success-light)] text-[var(--color-success)] flex items-center justify-center hover:bg-[var(--color-success-light)] transition-colors">
+                      <Plus size={10} className="size-[calc(10px*var(--fs))]" strokeWidth={3} />
                     </button>
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                   value={item.note}
                   onChange={e => updateNote(item.cartKey, e.target.value)}
                   placeholder="Catatan... (cth: tidak pedas)"
-                  className="w-full mt-1.5 px-2 py-1 text-[11px] border border-[var(--color-border)] rounded-md outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] bg-transparent"
+                  className="w-full mt-1.5 px-2 py-1 text-[length:calc(11px*var(--fs))] border border-[var(--color-border)] rounded-md outline-none focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)] bg-transparent"
                 />
               </div>
             ))
@@ -341,13 +341,13 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
 
         <div className="px-3.5 py-3 border-t border-[var(--color-border)] flex-shrink-0">
           <div className="flex justify-between items-baseline mb-2.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Total</span>
-            <span className="text-[20px] font-extrabold tabular-nums">{rp(total)}</span>
+            <span className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Total</span>
+            <span className="text-[length:calc(20px*var(--fs))] font-extrabold tabular-nums">{rp(total)}</span>
           </div>
-          <button onClick={() => openPayModal('bayar')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] bg-[var(--color-success)] text-white text-[13px] font-bold mb-1.5 disabled:opacity-40 hover:bg-[#1f6440] transition-colors">
+          <button onClick={() => openPayModal('bayar')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] bg-[var(--color-success)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-1.5 disabled:opacity-40 hover:bg-[#1f6440] transition-colors">
             ✅ Bayar Sekarang
           </button>
-          <button onClick={() => openPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[13px] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
+          <button onClick={() => openPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[length:calc(13px*var(--fs))] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
             📌 Orderan Terbuka
           </button>
         </div>
@@ -356,11 +356,11 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {/* Option selection modal */}
       {optionItem && (
         <Modal center onClose={() => setOptionItem(null)}>
-          <h2 className="text-[16px] font-extrabold text-center mb-1">{optionItem.name}</h2>
-          <p className="text-center text-[12px] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
+          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-1">{optionItem.name}</h2>
+          <p className="text-center text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
           {(optionItem.options ?? []).map((group, gi) => (
             <div key={gi} className="mb-4">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
                 {group.name} *
               </label>
               <div className="flex flex-wrap gap-2">
@@ -368,7 +368,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                   <button
                     key={choice}
                     onClick={() => setPendingOpts(prev => ({ ...prev, [group.name]: choice }))}
-                    className={`px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] transition-all
+                    className={`px-3.5 py-2 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold border-[1.5px] transition-all
                       ${pendingOpts[group.name] === choice
                         ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                         : 'bg-white border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-primary)]'
@@ -383,11 +383,11 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           <button
             onClick={() => { doAddToCart(optionItem, pendingOpts); setOptionItem(null) }}
             disabled={!allOptsSelected}
-            className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-40 hover:bg-[var(--color-primary-mid)] transition-colors"
+            className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-40 hover:bg-[var(--color-primary-mid)] transition-colors"
           >
             ➕ Tambah ke Pesanan
           </button>
-          <button onClick={() => setOptionItem(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+          <button onClick={() => setOptionItem(null)} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
         </Modal>
@@ -396,34 +396,34 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {/* Payment modal */}
       {payModal && (
         <Modal onClose={() => { setPayModal(null); setPaidAmount('') }}>
-          <h2 className="text-[16px] font-extrabold text-center mb-4">
+          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-4">
             {payModal === 'tab' ? '📌 Orderan Terbuka' : '💳 Bayar Sekarang'}
           </h2>
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama *</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama *</label>
             <input
               autoFocus
               value={customerName}
               onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setModalNameError(false) }}
               placeholder="cth: Meja 3 / Budi"
-              className={`w-full px-3 py-2 border-[1.5px] rounded-lg text-[13px] outline-none transition-colors
+              className={`w-full px-3 py-2 border-[1.5px] rounded-lg text-[length:calc(13px*var(--fs))] outline-none transition-colors
                 ${modalNameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
             />
-            {modalNameError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Nama wajib diisi</p>}
+            {modalNameError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mt-1 font-semibold">Nama wajib diisi</p>}
           </div>
           <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
             {cart.map(i => (
-              <div key={i.cartKey} className="flex justify-between text-[12px] py-0.5 tabular-nums">
+              <div key={i.cartKey} className="flex justify-between text-[length:calc(12px*var(--fs))] py-0.5 tabular-nums">
                 <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
               </div>
             ))}
-            <div className="flex justify-between text-[16px] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
+            <div className="flex justify-between text-[length:calc(16px*var(--fs))] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
               <span>TOTAL</span><span>{rp(total)}</span>
             </div>
           </div>
 
           <div className="mb-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Jenis Pesanan *</label>
+            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Jenis Pesanan *</label>
             <div className="grid grid-cols-2 gap-2">
               {([
                 { id: 'makan_ditempat', label: 'Di Tempat', icon: '🍽️' },
@@ -431,7 +431,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
               ] as const).map(opt => (
                 <button key={opt.id} type="button"
                   onClick={() => { setDiningType(opt.id); setDiningError(false) }}
-                  className={`py-2 rounded-lg text-[12px] font-bold border-[1.5px] transition-all
+                  className={`py-2 rounded-lg text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] transition-all
                     ${diningType === opt.id
                       ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                       : diningError
@@ -442,17 +442,17 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                 </button>
               ))}
             </div>
-            {diningError && <p className="text-[11px] text-[var(--color-danger)] mt-1 font-semibold">Pilih jenis pesanan</p>}
+            {diningError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mt-1 font-semibold">Pilih jenis pesanan</p>}
           </div>
 
           {payModal === 'bayar' && (
             <div className="mb-3">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Metode Pembayaran *</label>
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Metode Pembayaran *</label>
               <div className="grid grid-cols-3 gap-2 mb-1">
                 {[{ id: 'Tunai', icon: '💵' }, { id: 'Transfer', icon: '🏦' }, { id: 'QRIS', icon: '📱' }].map(m => (
                   <button key={m.id} type="button"
                     onClick={() => { setPaymentMethod(m.id); setPayMethodError(false) }}
-                    className={`py-2 rounded-lg text-[12px] font-bold border-[1.5px] transition-all
+                    className={`py-2 rounded-lg text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] transition-all
                       ${paymentMethod === m.id
                         ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                         : `bg-[var(--color-surface2)] text-[var(--color-muted)] ${payMethodError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`
@@ -461,22 +461,22 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
                   </button>
                 ))}
               </div>
-              {payMethodError && <p className="text-[11px] text-[var(--color-danger)] mb-2 font-semibold">Pilih metode pembayaran</p>}
+              {payMethodError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mb-2 font-semibold">Pilih metode pembayaran</p>}
             </div>
           )}
 
           {payModal === 'bayar' && (
             <div className="mb-3">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Uang Diterima</label>
+              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Uang Diterima</label>
               <input
                 type="number" inputMode="numeric"
                 value={paidAmount}
                 onChange={e => setPaidAmount(e.target.value)}
                 placeholder={String(total)}
-                className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none focus:border-[var(--color-primary)]"
+                className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)]"
               />
               {paidAmount && (
-                <div className={`flex justify-between text-[14px] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums ${change >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>
+                <div className={`flex justify-between text-[length:calc(14px*var(--fs))] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums ${change >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>
                   <span>Kembalian</span>
                   <span>{rp(change)}</span>
                 </div>
@@ -485,18 +485,18 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           )}
 
           {payModal === 'tab' && (
-            <p className="text-[12px] text-[var(--color-muted)] mb-3">Pesanan disimpan sebagai orderan terbuka. Bayar nanti dari tab Pesanan.</p>
+            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-3">Pesanan disimpan sebagai orderan terbuka. Bayar nanti dari tab Pesanan.</p>
           )}
 
           <button
             onClick={() => confirmPay(payModal)}
             disabled={loading}
-            className={`w-full py-2.5 rounded-lg text-[13px] font-bold text-white mb-1.5 disabled:opacity-50 transition-colors
+            className={`w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold text-white mb-1.5 disabled:opacity-50 transition-colors
               ${payModal === 'bayar' ? 'bg-[var(--color-success)] hover:bg-[#1f6440]' : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-mid)]'}`}
           >
             {loading ? 'Menyimpan...' : payModal === 'tab' ? '📌 Simpan Orderan Terbuka' : '✅ Konfirmasi Bayar'}
           </button>
-          <button onClick={() => { setPayModal(null); setPaidAmount('') }} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+          <button onClick={() => { setPayModal(null); setPaidAmount('') }} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
           </button>
         </Modal>
@@ -505,14 +505,14 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {/* Receipt modal */}
       {receiptOrder && (
         <Modal onClose={() => setReceiptOrder(null)}>
-          <h2 className="text-[16px] font-extrabold text-center mb-4">🧾 Struk Pesanan</h2>
-          <pre className="font-mono text-[11px] leading-relaxed bg-[var(--color-surface2)] border border-dashed border-[var(--color-border)] rounded-lg p-3 overflow-x-auto whitespace-pre">
+          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-4">🧾 Struk Pesanan</h2>
+          <pre className="font-mono text-[length:calc(11px*var(--fs))] leading-relaxed bg-[var(--color-surface2)] border border-dashed border-[var(--color-border)] rounded-lg p-3 overflow-x-auto whitespace-pre">
             {buildReceipt(receiptOrder)}
           </pre>
-          <button onClick={doPrint} className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mt-3 hover:bg-[var(--color-primary-mid)] transition-colors">
+          <button onClick={doPrint} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold bg-[var(--color-primary)] text-white mt-3 hover:bg-[var(--color-primary-mid)] transition-colors">
             🖨️ Print
           </button>
-          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[var(--color-text)] transition-colors">
+          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[var(--color-text)] transition-colors">
             Tutup
           </button>
         </Modal>

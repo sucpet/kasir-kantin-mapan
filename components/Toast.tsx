@@ -20,7 +20,7 @@ export function Toast({ message, onDone }: ToastProps) {
   return (
     <div
       className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] pointer-events-none
-        bg-[#1C2420] text-white px-5 py-2.5 rounded-full text-[13px] font-semibold
+        bg-[#1C2420] text-white px-5 py-2.5 rounded-full text-[length:calc(13px*var(--fs))] font-semibold
         whitespace-nowrap transition-opacity duration-300"
       style={{ opacity: visible ? 1 : 0 }}
     >

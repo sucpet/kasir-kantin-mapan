@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Skala font global: ubah angka ini untuk memperbesar/memperkecil semua teks */
+:root { --fs: 1.5; }
+
+@theme {
+  --text-xs: calc(0.75rem * var(--fs));
+  --text-sm: calc(0.875rem * var(--fs));
+  --text-2xl: calc(1.5rem * var(--fs));
+  --text-3xl: calc(1.875rem * var(--fs));
+  --text-4xl: calc(2.25rem * var(--fs));
+  --text-5xl: calc(3rem * var(--fs));
+}
+
 /* === BASE THEME = DARK MODE === */
 @theme inline {
   /* Brand */
@@ -75,7 +87,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: calc(14px * var(--fs));
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }

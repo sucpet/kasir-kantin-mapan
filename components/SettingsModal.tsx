@@ -117,13 +117,13 @@ export default function SettingsModal({ onClose, onToast }: Props) {
 
   return (
     <Modal onClose={onClose}>
-      <h2 className="text-[16px] font-extrabold text-center mb-1">⚙️ Pengaturan</h2>
-      <p className="text-[12px] text-[var(--color-muted)] text-center mb-4">
+      <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-1">⚙️ Pengaturan</h2>
+      <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] text-center mb-4">
         Jika QRIS diset, pelanggan langsung diarahkan bayar setelah pesan
       </p>
 
       <div className="mb-4">
-        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
+        <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
           Kode QRIS Toko
         </label>
         {qrisPreview ? (
@@ -132,12 +132,12 @@ export default function SettingsModal({ onClose, onToast }: Props) {
               <img src={qrisPreview} alt="QRIS" className="w-full max-h-52 object-contain mx-auto block" />
             </div>
             <div className="flex gap-2 mt-2">
-              <label className="flex-1 py-2 text-[12px] font-bold text-center bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-lg cursor-pointer hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
+              <label className="flex-1 py-2 text-[length:calc(12px*var(--fs))] font-bold text-center bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-lg cursor-pointer hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
                 🔄 Ganti Foto
                 <input type="file" accept="image/*" className="hidden" onChange={handlePick} />
               </label>
               <button onClick={removeQris}
-                className="px-3 py-2 text-[12px] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
+                className="px-3 py-2 text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
                 Hapus
               </button>
             </div>
@@ -145,8 +145,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         ) : (
           <label className="flex flex-col items-center justify-center w-full h-36 border-[1.5px] border-dashed border-[var(--color-border)] rounded-xl cursor-pointer hover:border-[var(--color-primary)] transition-colors bg-[var(--color-surface2)]">
             <span className="text-3xl mb-2">📱</span>
-            <span className="text-[12px] text-[var(--color-text)] font-semibold">Upload gambar QRIS toko</span>
-            <span className="text-[10px] text-[var(--color-muted)] mt-1 text-center px-4">
+            <span className="text-[length:calc(12px*var(--fs))] text-[var(--color-text)] font-semibold">Upload gambar QRIS toko</span>
+            <span className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-1 text-center px-4">
               Pelanggan akan diminta scan ini setelah memesan
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={handlePick} />
@@ -156,8 +156,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
 
       {/* Bluetooth Thermal Printer */}
       <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
-        <div className="text-[13px] font-bold mb-1">📡 Printer Bluetooth (BLE)</div>
-        <div className="text-[11px] text-[var(--color-muted)] mb-3">
+        <div className="text-[length:calc(13px*var(--fs))] font-bold mb-1">📡 Printer Bluetooth (BLE)</div>
+        <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mb-3">
           Sambungkan thermal printer BLE untuk cetak struk langsung tanpa dialog print.
         </div>
 
@@ -165,21 +165,21 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         {printerName ? (
           <div className="flex items-center gap-2 mb-3">
             <div className={`flex-1 rounded-lg px-3 py-2 border ${mockPrinter ? 'bg-[var(--color-info-light)] border-[var(--color-info)]' : 'bg-[var(--color-success-light)] border-[var(--color-success)]'}`}>
-              <div className={`text-[11px] font-bold ${mockPrinter ? 'text-[var(--color-info)]' : 'text-[var(--color-success-text)]'}`}>
+              <div className={`text-[length:calc(11px*var(--fs))] font-bold ${mockPrinter ? 'text-[var(--color-info)]' : 'text-[var(--color-success-text)]'}`}>
                 {mockPrinter ? '🧪 Mode Test' : '✓ Terhubung'}
               </div>
-              <div className="text-[12px] font-semibold text-[var(--color-text)] truncate">{printerName}</div>
+              <div className="text-[length:calc(12px*var(--fs))] font-semibold text-[var(--color-text)] truncate">{printerName}</div>
             </div>
             {!mockPrinter && (
               <button onClick={handleDisconnectPrinter}
-                className="px-3 py-2 text-[12px] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
+                className="px-3 py-2 text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-danger-light)] border border-[var(--color-danger-light)] text-[var(--color-danger)] rounded-lg hover:opacity-80 transition-opacity">
                 Putus
               </button>
             )}
           </div>
         ) : (
           <button onClick={handleConnectPrinter} disabled={printerConnecting}
-            className="w-full py-2.5 rounded-lg text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors mb-3">
+            className="w-full py-2.5 rounded-lg text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors mb-3">
             {printerConnecting ? 'Mencari printer...' : '🔍 Cari & Hubungkan Printer'}
           </button>
         )}
@@ -187,8 +187,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
         {/* Mock toggle */}
         <div className="flex items-center justify-between pt-2.5 border-t border-[var(--color-border)]">
           <div>
-            <div className="text-[12px] font-bold">🧪 Mode Test (tanpa printer)</div>
-            <div className="text-[10px] text-[var(--color-muted)] mt-0.5">Simulasi print untuk cek flow · tersimpan otomatis</div>
+            <div className="text-[length:calc(12px*var(--fs))] font-bold">🧪 Mode Test (tanpa printer)</div>
+            <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-0.5">Simulasi print untuk cek flow · tersimpan otomatis</div>
           </div>
           <button
             onClick={toggleMockPrinter}
@@ -203,8 +203,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
       <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[13px] font-bold">🖨️ Auto Print Struk</div>
-            <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
+            <div className="text-[length:calc(13px*var(--fs))] font-bold">🖨️ Auto Print Struk</div>
+            <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mt-0.5">
               {printerName ? 'Print otomatis via Bluetooth saat konfirmasi' : 'Aktifkan hanya di perangkat yang terhubung printer'} · tersimpan otomatis
             </div>
           </div>
@@ -219,8 +219,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
 
       {/* Reset PIN pelanggan */}
       <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
-        <div className="text-[13px] font-bold mb-1">🔑 Reset PIN Pelanggan</div>
-        <div className="text-[11px] text-[var(--color-muted)] mb-3">
+        <div className="text-[length:calc(13px*var(--fs))] font-bold mb-1">🔑 Reset PIN Pelanggan</div>
+        <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mb-3">
           Untuk pelanggan yang lupa PIN. Pelanggan membuat PIN baru saat masuk berikutnya.
         </div>
         <div className="flex gap-2">
@@ -231,10 +231,10 @@ export default function SettingsModal({ onClose, onToast }: Props) {
             onChange={e => setResetPhone(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && resetPhone.trim() && resetPin()}
             placeholder="08123456789"
-            className="flex-1 min-w-0 px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)]"
+            className="flex-1 min-w-0 px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)]"
           />
           <button onClick={resetPin} disabled={resetting || !resetPhone.trim()}
-            className="px-3 py-2 text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors">
+            className="px-3 py-2 text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors">
             {resetting ? '...' : 'Reset'}
           </button>
         </div>
@@ -242,12 +242,12 @@ export default function SettingsModal({ onClose, onToast }: Props) {
 
       {qrisFile && (
         <button onClick={save} disabled={saving}
-          className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
+          className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold bg-[var(--color-primary)] text-white mb-1.5 disabled:opacity-50 hover:bg-[var(--color-primary-mid)] transition-colors">
           {saving ? 'Menyimpan...' : '💾 Simpan QRIS'}
         </button>
       )}
       <button onClick={onClose}
-        className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+        className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
         Tutup
       </button>
     </Modal>

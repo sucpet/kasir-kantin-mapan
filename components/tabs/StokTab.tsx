@@ -95,15 +95,15 @@ export default function StokTab({ onToast }: Props) {
   const menipisCount = trackedItems.filter(i => i.stock! > 0 && i.stock! <= i.stock_threshold).length
 
   function StockBadge({ item }: { item: MenuItem }) {
-    if (item.stock === null) return <span className="text-[11px] text-[var(--color-muted)]">—</span>
+    if (item.stock === null) return <span className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">—</span>
     if (item.stock === 0) return (
-      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--color-danger-light)] text-[var(--color-danger)]">Habis</span>
+      <span className="px-2 py-0.5 rounded-full text-[length:calc(11px*var(--fs))] font-bold bg-[var(--color-danger-light)] text-[var(--color-danger)]">Habis</span>
     )
     if (item.stock <= item.stock_threshold) return (
-      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">⚠ {item.stock}</span>
+      <span className="px-2 py-0.5 rounded-full text-[length:calc(11px*var(--fs))] font-bold bg-amber-100 text-amber-700">⚠ {item.stock}</span>
     )
     return (
-      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--color-success-light)] text-[var(--color-success-text)]">{item.stock}</span>
+      <span className="px-2 py-0.5 rounded-full text-[length:calc(11px*var(--fs))] font-bold bg-[var(--color-success-light)] text-[var(--color-success-text)]">{item.stock}</span>
     )
   }
 
@@ -112,50 +112,50 @@ export default function StokTab({ onToast }: Props) {
       {/* Summary header */}
       <div className="px-4 py-3 bg-white border-b border-[var(--color-border)] flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[13px] font-extrabold">📦 Manajemen Stok</span>
-          <button onClick={fetchItems} className="text-[11px] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+          <span className="text-[length:calc(13px*var(--fs))] font-extrabold">📦 Manajemen Stok</span>
+          <button onClick={fetchItems} className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             🔄 Refresh
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {habisCount > 0 && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[var(--color-danger-light)] text-[var(--color-danger)]">
+            <span className="px-2.5 py-1 rounded-full text-[length:calc(11px*var(--fs))] font-bold bg-[var(--color-danger-light)] text-[var(--color-danger)]">
               🔴 {habisCount} Habis
             </span>
           )}
           {menipisCount > 0 && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">
+            <span className="px-2.5 py-1 rounded-full text-[length:calc(11px*var(--fs))] font-bold bg-amber-100 text-amber-700">
               🟡 {menipisCount} Menipis
             </span>
           )}
           {habisCount === 0 && menipisCount === 0 && trackedItems.length > 0 && (
-            <span className="text-[12px] text-[var(--color-muted)]">✓ Semua stok aman ({trackedItems.length} item dipantau)</span>
+            <span className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)]">✓ Semua stok aman ({trackedItems.length} item dipantau)</span>
           )}
           {trackedItems.length === 0 && (
-            <span className="text-[12px] text-[var(--color-muted)]">Belum ada item yang dipantau stoknya</span>
+            <span className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)]">Belum ada item yang dipantau stoknya</span>
           )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
         {loading && (
-          <div className="text-center py-8 text-[var(--color-muted)] text-[13px]">Memuat...</div>
+          <div className="text-center py-8 text-[var(--color-muted)] text-[length:calc(13px*var(--fs))]">Memuat...</div>
         )}
 
         {!loading && Object.entries(grouped).map(([cat, catItems]) => (
           <div key={cat} className="mb-4">
-            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2 px-0.5">{cat}</div>
+            <div className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2 px-0.5">{cat}</div>
             {catItems.map(item => (
               <div key={item.id} className={`bg-white border border-[var(--color-border)] rounded-xl mb-2 overflow-hidden ${!item.available ? 'opacity-50' : ''}`}>
                 {/* Row 1: name + badge + toggle */}
                 <div className="flex items-center gap-2.5 px-3 py-2.5">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold truncate">{item.name}</div>
-                    <div className="text-[11px] text-[var(--color-muted)]">{rp(item.price)}</div>
+                    <div className="text-[length:calc(13px*var(--fs))] font-bold truncate">{item.name}</div>
+                    <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">{rp(item.price)}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {saving[item.id] ? (
-                      <span className="text-[11px] text-[var(--color-muted)]">💾</span>
+                      <span className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">💾</span>
                     ) : (
                       <StockBadge item={item} />
                     )}
@@ -178,12 +178,12 @@ export default function StokTab({ onToast }: Props) {
                       <button
                         onClick={() => quickAdd(item, -10)}
                         disabled={!!saving[item.id] || item.stock <= 0}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
+                        className="px-2.5 py-1.5 text-[length:calc(11px*var(--fs))] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
                       >−10</button>
                       <button
                         onClick={() => quickAdd(item, -5)}
                         disabled={!!saving[item.id] || item.stock <= 0}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
+                        className="px-2.5 py-1.5 text-[length:calc(11px*var(--fs))] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
                       >−5</button>
                       <input
                         type="number"
@@ -192,20 +192,20 @@ export default function StokTab({ onToast }: Props) {
                         onChange={e => setStockEdits(prev => ({ ...prev, [item.id]: e.target.value }))}
                         onBlur={() => commitStock(item)}
                         onKeyDown={e => e.key === 'Enter' && commitStock(item)}
-                        className="w-16 text-center px-2 py-1.5 text-[13px] font-extrabold border-[1.5px] border-[var(--color-border)] rounded-lg outline-none focus:border-[var(--color-primary)] tabular-nums bg-transparent"
+                        className="w-16 text-center px-2 py-1.5 text-[length:calc(13px*var(--fs))] font-extrabold border-[1.5px] border-[var(--color-border)] rounded-lg outline-none focus:border-[var(--color-primary)] tabular-nums bg-transparent"
                       />
                       <button
                         onClick={() => quickAdd(item, 5)}
                         disabled={!!saving[item.id]}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+                        className="px-2.5 py-1.5 text-[length:calc(11px*var(--fs))] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
                       >+5</button>
                       <button
                         onClick={() => quickAdd(item, 10)}
                         disabled={!!saving[item.id]}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+                        className="px-2.5 py-1.5 text-[length:calc(11px*var(--fs))] font-bold rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] disabled:opacity-40 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
                       >+10</button>
                       <div className="flex items-center gap-1 ml-auto">
-                        <span className="text-[10px] text-[var(--color-muted)]">Batas ⚠</span>
+                        <span className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)]">Batas ⚠</span>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -213,7 +213,7 @@ export default function StokTab({ onToast }: Props) {
                           onChange={e => setThreshEdits(prev => ({ ...prev, [item.id]: e.target.value }))}
                           onBlur={() => commitThreshold(item)}
                           onKeyDown={e => e.key === 'Enter' && commitThreshold(item)}
-                          className="w-12 text-center px-1.5 py-1 text-[11px] font-bold border border-[var(--color-border)] rounded-lg outline-none focus:border-amber-400 tabular-nums bg-transparent"
+                          className="w-12 text-center px-1.5 py-1 text-[length:calc(11px*var(--fs))] font-bold border border-[var(--color-border)] rounded-lg outline-none focus:border-amber-400 tabular-nums bg-transparent"
                         />
                       </div>
                     </div>
