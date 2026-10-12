@@ -136,21 +136,26 @@ export default function OrderPage() {
     if (activeTab === 'riwayat' && phone) fetchHistory()
   }, [activeTab, phone]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function logout() {
+    clearSession()
+    setAuthStep('login')
+    setPhone('')
+    setToken('')
+    setCustomer(null)
+    setLoginPhone('')
+    setRedeemAmt(0)
+    setCart([])
+    setSubmitted(false)
+    setOrderId(null)
+    setOrderHistory([])
+    setActiveTab('menu')
+    setCustomerName('')
+  }
+
   // Session expires 5 minutes after login — show login screen again, no page reload
   useEffect(() => {
     if (authStep !== 'done') return
-    const timer = setTimeout(() => {
-      clearSession()
-      setAuthStep('login')
-      setPhone('')
-      setToken('')
-      setCustomer(null)
-      setLoginPhone('')
-      setRedeemAmt(0)
-      setCart([])
-      setSubmitted(false)
-      setCustomerName('')
-    }, SESSION_TTL)
+    const timer = setTimeout(logout, SESSION_TTL)
     return () => clearTimeout(timer)
   }, [authStep])
 
@@ -738,9 +743,17 @@ export default function OrderPage() {
         <span className="text-[12px] text-[var(--color-text)]">
           👋 <span className="font-bold">{customer?.name || phone}</span>
         </span>
-        <span className="text-[12px] font-extrabold text-[var(--color-primary)]">
-          {(customer?.points ?? 0).toLocaleString('id')} poin
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] font-extrabold text-[var(--color-primary)]">
+            {(customer?.points ?? 0).toLocaleString('id')} poin
+          </span>
+          <button
+            onClick={() => { if (cart.length === 0 || confirm('Keranjang akan dikosongkan. Keluar?')) logout() }}
+            className="text-[12px] font-bold text-[var(--color-muted)] hover:text-[var(--color-danger)] transition-colors"
+          >
+            Keluar
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
