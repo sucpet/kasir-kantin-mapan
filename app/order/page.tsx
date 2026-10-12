@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Minus, Plus } from 'lucide-react'
+import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
 import { rp, orderSum, fmtTime } from '@/lib/utils'
@@ -749,8 +749,9 @@ export default function OrderPage() {
           </span>
           <button
             onClick={() => { if (cart.length === 0 || confirm('Keranjang akan dikosongkan. Keluar?')) logout() }}
-            className="text-[12px] font-bold text-[var(--color-muted)] hover:text-[var(--color-danger)] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface2)] text-[12px] font-bold text-[var(--color-muted)] hover:text-[var(--color-danger)] hover:border-[var(--color-danger)] transition-colors"
           >
+            <LogOut size={14} />
             Keluar
           </button>
         </div>
