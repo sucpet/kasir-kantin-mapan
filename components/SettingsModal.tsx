@@ -17,6 +17,8 @@ export default function SettingsModal({ onClose, onToast }: Props) {
   const [printerName, setPrinterName] = useState<string | null>(null)
   const [printerConnecting, setPrinterConnecting] = useState(false)
   const [mockPrinter, setMockPrinter] = useState(false)
+  const [resetPhone, setResetPhone] = useState('')
+  const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
     supabase
@@ -87,6 +89,23 @@ export default function SettingsModal({ onClose, onToast }: Props) {
     onToast('QRIS berhasil disimpan!')
     setSaving(false)
     onClose()
+  }
+
+  async function resetPin() {
+    let phone = resetPhone.replace(/\D/g, '')
+    if (phone.startsWith('62')) phone = '0' + phone.slice(2)
+    if (phone.startsWith('8')) phone = '0' + phone
+    setResetting(true)
+    const { data, error } = await supabase
+      .from('customers')
+      .update({ pin_hash: null, pin_failed: 0, pin_locked_until: null, session_token: null })
+      .eq('phone', phone)
+      .select('name')
+    setResetting(false)
+    if (error) { onToast('Gagal reset PIN'); return }
+    if (!data?.length) { onToast(`Nomor ${phone} tidak terdaftar`); return }
+    setResetPhone('')
+    onToast(`PIN ${data[0].name} direset. Minta buat PIN baru saat masuk.`)
   }
 
   async function removeQris() {
@@ -194,6 +213,29 @@ export default function SettingsModal({ onClose, onToast }: Props) {
             className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden p-0 border-0 ${autoPrint ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
           >
             <span className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${autoPrint ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Reset PIN pelanggan */}
+      <div className="mb-4 p-3.5 bg-[var(--color-surface2)] border border-[var(--color-border)] rounded-xl">
+        <div className="text-[13px] font-bold mb-1">🔑 Reset PIN Pelanggan</div>
+        <div className="text-[11px] text-[var(--color-muted)] mb-3">
+          Untuk pelanggan yang lupa PIN. Pelanggan membuat PIN baru saat masuk berikutnya.
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={resetPhone}
+            onChange={e => setResetPhone(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && resetPhone.trim() && resetPin()}
+            placeholder="08123456789"
+            className="flex-1 min-w-0 px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[13px] outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)]"
+          />
+          <button onClick={resetPin} disabled={resetting || !resetPhone.trim()}
+            className="px-3 py-2 text-[12px] font-bold border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-light)] disabled:opacity-50 transition-colors">
+            {resetting ? '...' : 'Reset'}
           </button>
         </div>
       </div>

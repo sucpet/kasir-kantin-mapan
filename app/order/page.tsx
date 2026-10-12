@@ -19,7 +19,10 @@ type Customer = { name: string; points: number }
 const SESSION_KEY = 'kantin_order_session'
 const SESSION_TTL = 5 * 60 * 1000
 
-type StoredSession = { phone: string; name: string; points: number; loginAt: number }
+type StoredSession = { phone: string; token: string; name: string; points: number; loginAt: number }
+type LoginResult = { status: string; token?: string; name?: string; points?: number; remaining?: number }
+
+const PIN_RE = /^[0-9]{6}$/
 
 function getStoredSession(): StoredSession | null {
   if (typeof window === 'undefined') return null
@@ -35,9 +38,10 @@ function getStoredSession(): StoredSession | null {
   } catch { return null }
 }
 
-function saveSession(phone: string, customer: Customer) {
+function saveSession(phone: string, token: string, customer: Customer) {
+  const loginAt = getStoredSession()?.loginAt ?? Date.now()
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-    phone, name: customer.name, points: customer.points, loginAt: Date.now(),
+    phone, token, name: customer.name, points: customer.points, loginAt,
   }))
 }
 
@@ -66,7 +70,12 @@ export default function OrderPage() {
   const [lastOrderItems, setLastOrderItems] = useState<CartItem[]>([])
   const [paymentSuffix, setPaymentSuffix] = useState(0)
   // Auth
-  const [authStep, setAuthStep] = useState<'login' | 'register' | 'done'>(() => getStoredSession() ? 'done' : 'login')
+  const [authStep, setAuthStep] = useState<'login' | 'pin' | 'register' | 'done'>(() => getStoredSession()?.token ? 'done' : 'login')
+  const [pinMode, setPinMode] = useState<'enter' | 'create'>('enter')
+  const [pin, setPin] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [token, setToken] = useState(() => getStoredSession()?.token ?? '')
   const [loginPhone, setLoginPhone] = useState('')
   const [loginError, setLoginError] = useState('')
   const [registerName, setRegisterName] = useState('')
@@ -74,10 +83,10 @@ export default function OrderPage() {
   const [registerError, setRegisterError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   // Loyalty points
-  const [phone, setPhone] = useState(() => getStoredSession()?.phone ?? '')
+  const [phone, setPhone] = useState(() => getStoredSession()?.token ? getStoredSession()!.phone : '')
   const [customer, setCustomer] = useState<Customer | null>(() => {
     const s = getStoredSession()
-    return s ? { name: s.name, points: s.points } : null
+    return s?.token ? { name: s.name, points: s.points } : null
   })
   const [redeemAmt, setRedeemAmt] = useState(0)
   const [lastPointsEarned, setLastPointsEarned] = useState(0)
@@ -108,12 +117,12 @@ export default function OrderPage() {
       const { data: status } = await supabase.rpc('order_status', { p_order_id: orderId })
       if (!status || status === orderStatus) return
       setOrderStatus(status)
-      if ((status === 'paid' || status === 'done') && phone) {
-        const { data } = await supabase.rpc('customer_login', { p_phone: phone })
+      if ((status === 'paid' || status === 'done') && token) {
+        const { data } = await supabase.rpc('customer_me', { p_token: token })
         if (data) {
           setCustomer(prev => {
             const updated = prev ? { ...prev, points: data.points } : null
-            if (updated) saveSession(phone, updated)
+            if (updated) saveSession(phone, token, updated)
             return updated
           })
           setLastPointsTotal(data.points)
@@ -134,6 +143,7 @@ export default function OrderPage() {
       clearSession()
       setAuthStep('login')
       setPhone('')
+      setToken('')
       setCustomer(null)
       setLoginPhone('')
       setRedeemAmt(0)
@@ -159,37 +169,66 @@ export default function OrderPage() {
     }
     setAuthLoading(true)
     setLoginError('')
-    const { data } = await supabase.rpc('customer_login', { p_phone: norm })
+    const { data, error } = await supabase.rpc('customer_check', { p_phone: norm })
     setAuthLoading(false)
-    if (data) {
-      setPhone(norm)
-      setCustomer(data)
-      setCustomerName(data.name)
-      saveSession(norm, data)
-      setAuthStep('done')
-    } else {
+    if (error) { setLoginError('Terjadi kesalahan. Coba lagi.'); return }
+    setPin('')
+    setPinConfirm('')
+    if (data === 'not_found') {
       setRegisterPhone(norm)
       setRegisterName('')
       setRegisterError('')
       setAuthStep('register')
+      return
     }
+    setPinMode(data === 'needs_pin' ? 'create' : 'enter')
+    setPinError('')
+    setAuthStep('pin')
+  }
+
+  function finishLogin(norm: string, r: LoginResult) {
+    const c = { name: r.name ?? '', points: r.points ?? 0 }
+    clearSession()
+    saveSession(norm, r.token!, c)
+    setPhone(norm)
+    setToken(r.token!)
+    setCustomer(c)
+    setCustomerName(c.name)
+    setPin('')
+    setPinConfirm('')
+    setAuthStep('done')
+  }
+
+  async function handlePin() {
+    if (!PIN_RE.test(pin)) { setPinError('PIN harus 6 angka'); return }
+    if (pinMode === 'create' && pin !== pinConfirm) { setPinError('Konfirmasi PIN tidak sama'); return }
+    const norm = normalizePhone(loginPhone)
+    setAuthLoading(true)
+    setPinError('')
+    const { data, error } = await supabase.rpc('customer_login', { p_phone: norm, p_pin: pin })
+    setAuthLoading(false)
+    const r = data as LoginResult | null
+    if (error || !r) { setPinError('Terjadi kesalahan. Coba lagi.'); return }
+    if (r.status === 'ok') { finishLogin(norm, r); return }
+    setPin('')
+    if (r.status === 'wrong_pin') setPinError(`PIN salah. Sisa ${r.remaining} percobaan.`)
+    else if (r.status === 'locked') setPinError('Terlalu banyak percobaan. Coba lagi dalam 15 menit, atau minta kasir reset PIN.')
+    else if (r.status === 'not_found') setAuthStep('login')
+    else setPinError('PIN harus 6 angka')
   }
 
   async function handleRegister() {
     const norm = normalizePhone(registerPhone)
     if (!registerName.trim()) { setRegisterError('Nama wajib diisi'); return }
     if (!norm.startsWith('08') || norm.length < 10) { setRegisterError('Format nomor tidak valid (cth: 08123456789)'); return }
+    if (!PIN_RE.test(pin)) { setRegisterError('PIN harus 6 angka'); return }
+    if (pin !== pinConfirm) { setRegisterError('Konfirmasi PIN tidak sama'); return }
     setAuthLoading(true)
     setRegisterError('')
-    const { error } = await supabase.rpc('customer_register', { p_phone: norm, p_name: registerName.trim() })
+    const { data, error } = await supabase.rpc('customer_register', { p_phone: norm, p_name: registerName.trim(), p_pin: pin })
     setAuthLoading(false)
-    if (error) { setRegisterError('Nomor sudah terdaftar atau terjadi kesalahan'); return }
-    const newCustomer = { name: registerName.trim(), points: 0 }
-    setPhone(norm)
-    setCustomer(newCustomer)
-    setCustomerName(registerName.trim())
-    saveSession(norm, newCustomer)
-    setAuthStep('done')
+    if (error || !data) { setRegisterError('Nomor sudah terdaftar atau terjadi kesalahan'); return }
+    finishLogin(norm, data as LoginResult)
   }
 
   async function loadMenu() {
@@ -253,11 +292,10 @@ export default function OrderPage() {
     setLoading(true)
     setSubmitError('')
 
-    const { data, error } = await supabase.rpc('create_order', {
+    const { data, error } = await supabase.rpc('customer_create_order', {
+      p_token:          token || null,
       p_customer_name:  customerName.trim(),
-      p_customer_phone: phone || null,
       p_payment_method: qrisImageUrl ? 'QRIS' : null,
-      p_source:         'customer',
       p_redeem_points:  redeemAmt,
       p_dining_type:    diningType,
       p_items: cart.map(c => ({
@@ -305,9 +343,9 @@ export default function OrderPage() {
   }
 
   async function fetchHistory() {
-    if (!phone) return
+    if (!token) return
     setLoadingHistory(true)
-    const { data } = await supabase.rpc('customer_orders', { p_phone: phone })
+    const { data } = await supabase.rpc('customer_orders', { p_token: token })
     if (data) setOrderHistory(data)
     setLoadingHistory(false)
   }
@@ -376,10 +414,79 @@ export default function OrderPage() {
             <div className="text-center">
               <span className="text-[12px] text-[var(--color-muted)]">Belum punya akun? </span>
               <button
-                onClick={() => { setRegisterPhone(normalizePhone(loginPhone)); setRegisterName(''); setRegisterError(''); setAuthStep('register') }}
+                onClick={() => { setRegisterPhone(normalizePhone(loginPhone)); setRegisterName(''); setRegisterError(''); setPin(''); setPinConfirm(''); setAuthStep('register') }}
                 className="text-[12px] font-bold text-[var(--color-primary)] hover:underline"
               >
                 Daftar sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  const pinInput = (value: string, onChange: (v: string) => void, onEnter: () => void, hasError: boolean, autoFocus = false) => (
+    <input
+      autoFocus={autoFocus}
+      type="password"
+      inputMode="numeric"
+      autoComplete="off"
+      maxLength={6}
+      value={value}
+      onChange={e => { onChange(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(''); setRegisterError('') }}
+      onKeyDown={e => e.key === 'Enter' && onEnter()}
+      placeholder="••••••"
+      className={`w-full px-4 py-3 border-[1.5px] rounded-xl text-[20px] tracking-[0.5em] text-center outline-none transition-colors bg-transparent text-[var(--color-text)]
+        ${hasError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
+    />
+  )
+
+  const pinLabel = (text: string) => (
+    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">{text}</label>
+  )
+
+  if (authStep === 'pin') {
+    const creating = pinMode === 'create'
+    return (
+      <main className="flex flex-col min-h-screen bg-[var(--color-bg)]">
+        {authHeader}
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">🔒</div>
+              <h1 className="text-[22px] font-extrabold text-[var(--color-text)]">{creating ? 'Buat PIN' : 'Masukkan PIN'}</h1>
+              <p className="text-[13px] text-[var(--color-muted)] mt-1">
+                {creating
+                  ? `Buat PIN 6 angka untuk ${normalizePhone(loginPhone)}. PIN dipakai setiap kali masuk.`
+                  : normalizePhone(loginPhone)}
+              </p>
+            </div>
+            <div className="mb-3">
+              {pinLabel('PIN')}
+              {pinInput(pin, setPin, handlePin, !!pinError, true)}
+            </div>
+            {creating && (
+              <div className="mb-3">
+                {pinLabel('Ulangi PIN')}
+                {pinInput(pinConfirm, setPinConfirm, handlePin, !!pinError)}
+              </div>
+            )}
+            {pinError && <p className="text-[12px] text-[var(--color-danger)] mb-2 font-semibold">{pinError}</p>}
+            <button
+              onClick={handlePin}
+              disabled={authLoading || pin.length !== 6 || (creating && pinConfirm.length !== 6)}
+              className="w-full py-3.5 rounded-xl bg-[var(--color-primary)] text-white text-[15px] font-bold mb-3 disabled:opacity-40"
+            >
+              {authLoading ? 'Memeriksa...' : creating ? 'Simpan PIN & Masuk' : 'Masuk'}
+            </button>
+            <div className="text-center">
+              {!creating && <p className="text-[12px] text-[var(--color-muted)] mb-1">Lupa PIN? Minta kasir untuk reset.</p>}
+              <button
+                onClick={() => { setPinError(''); setAuthStep('login') }}
+                className="text-[12px] font-bold text-[var(--color-primary)] hover:underline"
+              >
+                Ganti nomor
               </button>
             </div>
           </div>
@@ -429,6 +536,14 @@ export default function OrderPage() {
                 className={`w-full px-4 py-3 border-[1.5px] rounded-xl text-[15px] outline-none transition-colors bg-transparent text-[var(--color-text)]
                   ${registerError && registerName.trim() ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
               />
+            </div>
+            <div className="mb-3">
+              {pinLabel('Buat PIN (6 angka)')}
+              {pinInput(pin, setPin, handleRegister, false)}
+            </div>
+            <div className="mb-3">
+              {pinLabel('Ulangi PIN')}
+              {pinInput(pinConfirm, setPinConfirm, handleRegister, false)}
             </div>
             {registerError && <p className="text-[12px] text-[var(--color-danger)] mb-2 font-semibold">{registerError}</p>}
             <button
