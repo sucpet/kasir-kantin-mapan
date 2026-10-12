@@ -3,7 +3,8 @@
 /* Skala font global: ubah angka ini untuk memperbesar/memperkecil semua teks */
 :root { --fs: 1.5; }
 
-@theme {
+/* inline: var(--fs) dihitung di elemen pemakai, jadi /order bisa pakai skala sendiri */
+@theme inline {
   --text-xs: calc(0.75rem * var(--fs));
   --text-sm: calc(0.875rem * var(--fs));
   --text-2xl: calc(1.5rem * var(--fs));
