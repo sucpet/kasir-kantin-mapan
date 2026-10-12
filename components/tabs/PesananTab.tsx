@@ -257,7 +257,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="bg-white border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <span className="text-[14px] font-extrabold">Pesanan Hari Ini</span>
+        <span className="text-[14px] font-extrabold">Pesanan</span>
         <span className="text-[12px] text-[var(--color-muted)]">
           {countOpen > 0 && `${countOpen} terbuka`}
           {countOpen > 0 && countPaid > 0 && ' · '}
