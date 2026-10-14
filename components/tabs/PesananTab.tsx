@@ -173,13 +173,13 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
         <div className="px-3 pb-3 flex gap-2">
           {!served && (
             <button onClick={() => markServed(order)} disabled={servingId === order.id}
-              className="flex-1 py-3.5 rounded-xl bg-[var(--color-success)] text-white text-[length:calc(15px*var(--fs))] font-extrabold disabled:opacity-50 active:scale-[0.98] transition-transform">
-              ✅ Sudah Disajikan
+              className="flex-1 px-2 py-3.5 rounded-xl bg-[var(--color-success)] text-white text-[length:calc(15px*var(--fs))] font-extrabold disabled:opacity-50 active:scale-[0.98] transition-transform">
+              ✓ Sudah Disajikan
             </button>
           )}
           {!paid && (
             <button onClick={() => setPayOrder(order)}
-              className="flex-1 py-3.5 rounded-xl bg-[var(--color-info)] text-white text-[length:calc(15px*var(--fs))] font-extrabold active:scale-[0.98] transition-transform">
+              className="flex-1 px-2 py-3.5 rounded-xl bg-[var(--color-info)] text-white text-[length:calc(15px*var(--fs))] font-extrabold active:scale-[0.98] transition-transform">
               💰 Lunas
             </button>
           )}

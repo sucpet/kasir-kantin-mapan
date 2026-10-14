@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Skala font global: ubah angka ini untuk memperbesar/memperkecil semua teks */
-:root { --fs: 1.5; }
+:root { --fs: 1.3; }
 
 /* inline: var(--fs) dihitung di elemen pemakai, jadi /order bisa pakai skala sendiri */
 @theme inline {
