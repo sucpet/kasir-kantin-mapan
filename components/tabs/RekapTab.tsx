@@ -93,7 +93,7 @@ export default function RekapTab() {
           </div>
           <div className="bg-[var(--color-accent-light)] rounded-[10px] p-2.5 text-center">
             <div className="text-[length:calc(11px*var(--fs))] sm:text-[length:calc(13px*var(--fs))] font-extrabold text-[var(--color-accent)] leading-tight">{open.length}</div>
-            <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-0.5 font-semibold uppercase tracking-wide leading-tight">Tab Terbuka</div>
+            <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-0.5 font-semibold uppercase tracking-wide leading-tight">Belum Bayar</div>
           </div>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function RekapTab() {
                 <div className="text-right">
                   <div className="flex items-center justify-end gap-1 mb-0.5">
                     <span className={`inline-block text-[length:calc(10px*var(--fs))] font-bold px-2 py-0.5 rounded-full ${(o.status === 'paid' || o.status === 'done') ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-[var(--color-accent-light)] text-[var(--color-accent-text)]'}`}>
-                      {o.status === 'done' ? 'Selesai' : o.status === 'paid' ? 'Lunas' : 'Tab'}
+                      {o.status === 'done' ? 'Selesai' : o.status === 'paid' ? 'Lunas' : 'Belum bayar'}
                     </span>
                     {o.payment_method && (
                       <span className="inline-block text-[length:calc(10px*var(--fs))] font-bold px-2 py-0.5 rounded-full bg-[var(--color-surface2)] text-[var(--color-muted)] border border-[var(--color-border)]">

@@ -16,7 +16,13 @@ Pengguna: papa/mama, di tablet Samsung ±8 inci, **mendatar (landscape)**. Penge
 4. **Catat pembayaran kapan saja** (sebelum atau sesudah makan) lewat tombol besar **💰 Lunas**:
    - **QRIS:** satu ketukan, langsung lunas.
    - **Tunai:** tombol **5.000 / 10.000 / 20.000 / 50.000 / 100.000** yang **dijumlahkan**, kotak nominal yang tetap bisa diketik atau diubah, tombol **Hapus**, dan **kembalian** ditampilkan besar. Tombol "Simpan" tidak aktif kalau uang kurang.
-5. **Order mandiri (QR)** tetap jalan dan masuk ke antrian yang sama, dengan penanda "📱 Pesan sendiri" dan nomor antrian.
+5. **Order mandiri (QR)** tetap jalan dan masuk ke antrian yang sama, dengan penanda "📱 Pesan sendiri" dan nomor antrian. Pesanan mandiri **hanya dibayar QRIS** (di muka), jadi tombolnya berurutan, bukan berdampingan:
+   - **🔍 Cek Pembayaran**: menampilkan nominal QRIS (total + kode unik), dengan pilihan:
+     - **✓ Sudah Masuk**: lunas
+     - **✗ Belum Masuk**: `orders.payment_issue_at` diisi; pelanggan melihat "⚠️ Pembayaran belum diterima" di layar pesanan dan di Riwayat
+   - lalu **✓ Sudah Selesai**: disajikan, dan keluar dari antrian.
+
+   Pesanan kasir tetap memakai **✓ Sudah Disajikan** + **💰 Bayar Pesanan** dalam urutan bebas (ditambahkan 2026-10-14).
 6. Pesanan **hilang dari antrian** hanya jika sudah **disajikan DAN lunas**.
 
 ## Keputusan desain

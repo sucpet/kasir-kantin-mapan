@@ -41,7 +41,7 @@
   - Verify: `tsc`, `build`, lint.
   - Files: `components/App.tsx`, `components/KelolaPanel.tsx`, `components/SettingsModal.tsx` (ubah PIN)
 
-- [ ] **T5: `/order` + Rekap ikut model baru**
+- [x] **T5: `/order` + Rekap ikut model baru**
   - Acceptance:
     - `/order`: polling memakai `order_progress`, menampilkan nomor antrian, "Sedang dibuat / Siap diambil", dan "Belum bayar / Lunas".
     - Riwayat memakai `served_at`, dan poin di-refresh saat lunas.

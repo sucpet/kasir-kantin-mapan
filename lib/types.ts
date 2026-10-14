@@ -43,6 +43,7 @@ export interface Order {
   points_to_earn: number
   served_at: string | null
   queue_no: number | null
+  payment_issue_at: string | null
   order_items?: OrderItem[]
 }
 

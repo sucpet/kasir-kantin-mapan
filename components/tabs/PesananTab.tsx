@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Order } from '@/lib/types'
-import { rp, fmtTime, inQueue, isServed } from '@/lib/utils'
+import { rp, fmtTime, inQueue, isServed, qrisAmount } from '@/lib/utils'
 import { isConnected, printReceipt } from '@/lib/printer'
 import Modal from '@/components/Modal'
 import PayModal from '@/components/PayModal'
@@ -13,6 +13,8 @@ interface PesananTabProps {
   refreshKey: number
   onOrderSettled: () => void
 }
+
+const bigBtn = 'flex-1 px-2 py-3.5 rounded-xl text-white text-[length:calc(15px*var(--fs))] font-extrabold disabled:opacity-50 active:scale-[0.98] transition-transform'
 
 const orderLabel = (o: Order) =>
   `#${o.queue_no ?? '–'}${o.customer_name && o.customer_name !== 'Tamu' ? ` · ${o.customer_name}` : ''}`
@@ -24,6 +26,8 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
   const [payOrder, setPayOrder] = useState<Order | null>(null)
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [servingId, setServingId] = useState<string | null>(null)
+  const [checkOrder, setCheckOrder] = useState<Order | null>(null)
+  const [checking, setChecking] = useState(false)
 
   const fetchOrders = useCallback(async () => {
     const todayStart = new Date()
@@ -79,6 +83,34 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     onOrderSettled()
   }
 
+  async function confirmQris(order: Order) {
+    setChecking(true)
+    const paidAmount = qrisAmount(order)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'paid', paid_amount: paidAmount, paid_at: new Date().toISOString(), payment_method: 'QRIS', payment_issue_at: null })
+      .eq('id', order.id)
+      .eq('status', 'open')
+    setChecking(false)
+    if (error) { onToast('Gagal menyimpan. Coba lagi.'); return }
+    setCheckOrder(null)
+    handlePaid({ ...order, status: 'paid', paid_amount: paidAmount, payment_method: 'QRIS', payment_issue_at: null })
+  }
+
+  async function flagNotReceived(order: Order) {
+    setChecking(true)
+    const { error } = await supabase
+      .from('orders')
+      .update({ payment_issue_at: new Date().toISOString() })
+      .eq('id', order.id)
+      .eq('status', 'open')
+    setChecking(false)
+    if (error) { onToast('Gagal menyimpan. Coba lagi.'); return }
+    setCheckOrder(null)
+    onToast(`${orderLabel(order)}: pelanggan diberi tahu pembayaran belum diterima`)
+    fetchOrders()
+  }
+
   function handlePaid(paid: Order) {
     setPayOrder(null)
     onToast(`${orderLabel(paid)} lunas ✓`)
@@ -129,6 +161,7 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
     const served = isServed(order)
     const paid = order.status !== 'open'
     const items = order.order_items ?? []
+    const isMandiri = order.source === 'customer'
     return (
       <div key={order.id} className="border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] rounded-2xl overflow-hidden flex flex-col">
         <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-3">
@@ -161,27 +194,47 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
         </div>
 
         <div className="px-4 py-2 flex flex-wrap gap-2 text-[length:calc(13px*var(--fs))] font-bold">
-          <span className={served ? 'text-[var(--color-success)]' : 'text-[var(--color-info)]'}>
-            {served ? '✅ Sudah disajikan' : '🍳 Sedang disiapkan'}
-          </span>
-          <span className="text-[var(--color-muted)]">·</span>
-          <span className={paid ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
-            {paid ? `💚 Lunas${order.payment_method ? ` (${order.payment_method})` : ''}` : `Belum bayar ${rp(order.total)}`}
-          </span>
+          {isMandiri && !paid ? (
+            order.payment_issue_at
+              ? <span className="text-[var(--color-danger)]">⚠️ Pembayaran belum diterima</span>
+              : <span className="text-[var(--color-accent)]">⏳ Cek pembayaran QRIS {rp(qrisAmount(order))}</span>
+          ) : (
+            <>
+              <span className={served ? 'text-[var(--color-success)]' : 'text-[var(--color-info)]'}>
+                {served ? '✅ Sudah disajikan' : '🍳 Sedang disiapkan'}
+              </span>
+              <span className="text-[var(--color-muted)]">·</span>
+              <span className={paid ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
+                {paid ? `💚 Lunas${order.payment_method ? ` (${order.payment_method})` : ''}` : `Belum bayar ${rp(order.total)}`}
+              </span>
+            </>
+          )}
         </div>
 
         <div className="px-3 pb-3 flex gap-2">
-          {!served && (
-            <button onClick={() => markServed(order)} disabled={servingId === order.id}
-              className="flex-1 px-2 py-3.5 rounded-xl bg-[var(--color-success)] text-white text-[length:calc(15px*var(--fs))] font-extrabold disabled:opacity-50 active:scale-[0.98] transition-transform">
-              ✓ Sudah Disajikan
-            </button>
-          )}
-          {!paid && (
-            <button onClick={() => setPayOrder(order)}
-              className="flex-1 px-2 py-3.5 rounded-xl bg-[var(--color-info)] text-white text-[length:calc(15px*var(--fs))] font-extrabold active:scale-[0.98] transition-transform">
-              💰 Lunas
-            </button>
+          {isMandiri ? (
+            !paid ? (
+              <button onClick={() => setCheckOrder(order)} className={`${bigBtn} bg-[var(--color-info)]`}>
+                🔍 Cek Pembayaran
+              </button>
+            ) : !served && (
+              <button onClick={() => markServed(order)} disabled={servingId === order.id} className={`${bigBtn} bg-[var(--color-success)]`}>
+                ✓ Sudah Selesai
+              </button>
+            )
+          ) : (
+            <>
+              {!served && (
+                <button onClick={() => markServed(order)} disabled={servingId === order.id} className={`${bigBtn} bg-[var(--color-success)]`}>
+                  ✓ Sudah Disajikan
+                </button>
+              )}
+              {!paid && (
+                <button onClick={() => setPayOrder(order)} className={`${bigBtn} bg-[var(--color-info)]`}>
+                  💰 Bayar Pesanan
+                </button>
+              )}
+            </>
           )}
           <button onClick={() => setReceiptOrder(order)} title="Struk"
             className="px-3 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[length:calc(15px*var(--fs))]">
@@ -238,6 +291,32 @@ export default function PesananTab({ onToast, refreshKey, onOrderSettled }: Pesa
 
       {payOrder && (
         <PayModal order={payOrder} onClose={() => setPayOrder(null)} onPaid={handlePaid} onToast={onToast} />
+      )}
+
+      {checkOrder && (
+        <Modal onClose={() => setCheckOrder(null)}>
+          <h2 className="text-[length:calc(18px*var(--fs))] font-extrabold text-center">🔍 Cek Pembayaran QRIS</h2>
+          <p className="text-center text-[length:calc(14px*var(--fs))] font-bold text-[var(--color-muted)] mb-3">{orderLabel(checkOrder)}</p>
+          <div className="bg-[var(--color-info-light)] border border-[var(--color-info)] rounded-xl p-4 mb-3 text-center">
+            <div className="text-[length:calc(13px*var(--fs))] font-bold text-[var(--color-info)]">Cari nominal ini di histori QRIS</div>
+            <div className="text-[length:calc(28px*var(--fs))] font-extrabold tabular-nums text-[var(--color-info)]">{rp(qrisAmount(checkOrder))}</div>
+          </div>
+          {checkOrder.pending_redeem > 0 && (
+            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] text-center mb-3">Termasuk potongan poin {rp(checkOrder.pending_redeem)}</p>
+          )}
+          <button onClick={() => confirmQris(checkOrder)} disabled={checking}
+            className="w-full py-4 rounded-xl bg-[var(--color-success)] text-white text-[length:calc(16px*var(--fs))] font-extrabold mb-2 disabled:opacity-50">
+            ✓ Sudah Masuk
+          </button>
+          <button onClick={() => flagNotReceived(checkOrder)} disabled={checking}
+            className="w-full py-4 rounded-xl bg-[var(--color-danger)] text-white text-[length:calc(16px*var(--fs))] font-extrabold mb-2 disabled:opacity-50">
+            ✗ Belum Masuk — Beri Tahu Pelanggan
+          </button>
+          <button onClick={() => setCheckOrder(null)}
+            className="w-full py-3 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[length:calc(14px*var(--fs))] font-semibold text-[var(--color-muted)]">
+            Tutup
+          </button>
+        </Modal>
       )}
 
       {receiptOrder && (

@@ -62,3 +62,12 @@ export function qrisAmount(o: { total: number; points_to_earn: number; source: s
 export function kembalian(due: number, received: number): number {
   return received - due
 }
+
+export type CustomerStage = 'issue' | 'waiting' | 'cooking' | 'ready'
+
+// Tahap pesanan dari sisi pelanggan /order
+export function customerStage(o: QueueOrder & { payment_issue_at?: string | null }): CustomerStage {
+  if (isServed(o)) return 'ready'
+  if (o.status === 'open') return o.payment_issue_at ? 'issue' : 'waiting'
+  return 'cooking'
+}

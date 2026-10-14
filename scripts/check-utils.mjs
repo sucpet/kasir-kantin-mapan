@@ -1,6 +1,6 @@
 // Self-check logika antrian & pembayaran. Jalankan: node scripts/check-utils.mjs
 import assert from 'node:assert/strict'
-import { inQueue, isServed, qrisAmount, kembalian } from '../lib/utils.ts'
+import { inQueue, isServed, qrisAmount, kembalian, customerStage } from '../lib/utils.ts'
 
 const now = '2026-10-12T05:00:00Z'
 assert.equal(inQueue({ status: 'open', served_at: null }), true)
@@ -17,5 +17,11 @@ assert.equal(qrisAmount({ total: 47000, points_to_earn: 0, source: 'kasir' }), 4
 assert.equal(kembalian(47000, 50000 + 20000), 23000)
 assert.equal(kembalian(47000, 47000), 0)
 assert.ok(kembalian(47000, 20000) < 0, 'uang kurang')
+
+assert.equal(customerStage({ status: 'open', served_at: null, payment_issue_at: null }), 'waiting')
+assert.equal(customerStage({ status: 'open', served_at: null, payment_issue_at: now }), 'issue')
+assert.equal(customerStage({ status: 'paid', served_at: null, payment_issue_at: now }), 'cooking', 'lunas mengalahkan flag lama')
+assert.equal(customerStage({ status: 'paid', served_at: now, payment_issue_at: null }), 'ready')
+assert.equal(customerStage({ status: 'done', served_at: null }), 'ready')
 
 console.log('utils OK')

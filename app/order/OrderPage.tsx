@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
-import { rp, orderSum, fmtTime } from '@/lib/utils'
+import { rp, orderSum, fmtTime, customerStage, CustomerStage } from '@/lib/utils'
 
 type CartItem = {
   menuId: string
@@ -23,6 +23,36 @@ type StoredSession = { phone: string; token: string; name: string; points: numbe
 type LoginResult = { status: string; token?: string; name?: string; points?: number; remaining?: number }
 
 const PIN_RE = /^[0-9]{6}$/
+
+type Progress = { status: string; served_at: string | null; payment_issue_at: string | null; queue_no: number | null }
+const NEW_PROGRESS: Progress = { status: 'open', served_at: null, payment_issue_at: null, queue_no: null }
+
+const STAGE: Record<CustomerStage, { icon: string; title: string; sub: string; badge: string; box: string; text: string; pill: string }> = {
+  issue: {
+    icon: '⚠️', title: 'Pembayaran Belum Diterima', badge: '⚠️ Pembayaran belum diterima',
+    sub: 'Cek aplikasi bank/e-wallet kamu, lalu tunjukkan bukti bayar ke kasir.',
+    box: 'bg-[var(--color-danger-light)] border-[var(--color-danger)]', text: 'text-[var(--color-danger)]',
+    pill: 'bg-[var(--color-danger-light)] text-[var(--color-danger)]',
+  },
+  waiting: {
+    icon: '⏳', title: 'Menunggu Konfirmasi Kasir', badge: '⏳ Menunggu konfirmasi',
+    sub: 'Kasir sedang mengecek pembayaranmu...',
+    box: 'bg-[var(--color-surface2)] border-[var(--color-border)]', text: 'text-[var(--color-text)]',
+    pill: 'bg-[var(--color-accent-light)] text-[var(--color-accent)]',
+  },
+  cooking: {
+    icon: '🍳', title: 'Sedang Dibuat...', badge: '🍳 Sedang dibuat',
+    sub: 'Pembayaran sudah diterima',
+    box: 'bg-[var(--color-info-light)] border-[var(--color-info)]', text: 'text-[var(--color-info)]',
+    pill: 'bg-[var(--color-info-light)] text-[var(--color-info)]',
+  },
+  ready: {
+    icon: '🎉', title: 'Pesanan Siap! Silakan Diambil', badge: '✅ Selesai',
+    sub: 'Terima kasih sudah menunggu!',
+    box: 'bg-[var(--color-success-light)] border-[var(--color-success)]', text: 'text-[var(--color-success)]',
+    pill: 'bg-[var(--color-success-light)] text-[var(--color-success-text)]',
+  },
+}
 
 function getStoredSession(): StoredSession | null {
   if (typeof window === 'undefined') return null
@@ -93,7 +123,8 @@ export default function OrderPage() {
   const [lastPointsTotal, setLastPointsTotal] = useState(0)
   const [lastHadPhone, setLastHadPhone] = useState(false)
   const [orderId, setOrderId] = useState<string | null>(null)
-  const [orderStatus, setOrderStatus] = useState<'open' | 'paid' | 'done'>('open')
+  const [progress, setProgress] = useState<Progress>(NEW_PROGRESS)
+  const stage = customerStage(progress)
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
   const [activeTab, setActiveTab] = useState<'menu' | 'riwayat'>('menu')
@@ -110,27 +141,29 @@ export default function OrderPage() {
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
 
-  // Poll status (anon tidak bisa subscribe realtime ke tabel orders karena RLS)
+  // Poll progres (anon tidak bisa subscribe realtime ke tabel orders karena RLS)
   useEffect(() => {
-    if (!submitted || !orderId || orderStatus === 'done') return
+    if (!submitted || !orderId || stage === 'ready') return
     const t = setInterval(async () => {
-      const { data: status } = await supabase.rpc('order_status', { p_order_id: orderId })
-      if (!status || status === orderStatus) return
-      setOrderStatus(status)
-      if ((status === 'paid' || status === 'done') && token) {
-        const { data } = await supabase.rpc('customer_me', { p_token: token })
-        if (data) {
+      const { data } = await supabase.rpc('order_progress', { p_order_id: orderId })
+      if (!data) return
+      const next = data as Progress
+      if (JSON.stringify(next) === JSON.stringify(progress)) return
+      setProgress(next)
+      if (progress.status === 'open' && next.status !== 'open' && token) {
+        const { data: me } = await supabase.rpc('customer_me', { p_token: token })
+        if (me) {
           setCustomer(prev => {
-            const updated = prev ? { ...prev, points: data.points } : null
+            const updated = prev ? { ...prev, points: me.points } : null
             if (updated) saveSession(phone, token, updated)
             return updated
           })
-          setLastPointsTotal(data.points)
+          setLastPointsTotal(me.points)
         }
       }
     }, 5000)
     return () => clearInterval(t)
-  }, [submitted, orderId, orderStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [submitted, orderId, progress]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeTab === 'riwayat' && phone) fetchHistory()
@@ -329,7 +362,7 @@ export default function OrderPage() {
     setLastPointsTotal(new_points) // poin saat ini (belum berubah), update via realtime
     setLastHadPhone(!!phone)
     setOrderId(order_id)
-    setOrderStatus('open')
+    setProgress(NEW_PROGRESS)
     setLoading(false)
     setCart([])
     setRedeemAmt(0)
@@ -589,30 +622,16 @@ export default function OrderPage() {
             </div>
 
             {/* Status live */}
-            <div className={`rounded-xl p-3.5 mb-4 text-center border transition-all ${
-              orderStatus === 'done'
-                ? 'bg-[var(--color-success-light)] border-[var(--color-success)]'
-                : orderStatus === 'paid'
-                ? 'bg-[var(--color-info-light)] border-[var(--color-info)]'
-                : 'bg-[var(--color-surface2)] border-[var(--color-border)]'
-            }`}>
-              <div className="text-2xl mb-1">
-                {orderStatus === 'done' ? '🎉' : orderStatus === 'paid' ? '🍳' : '⏳'}
-              </div>
-              <div className={`text-[length:calc(14px*var(--fs))] font-extrabold ${
-                orderStatus === 'done' ? 'text-[var(--color-success)]'
-                : orderStatus === 'paid' ? 'text-[var(--color-info)]'
-                : 'text-[var(--color-text)]'
-              }`}>
-                {orderStatus === 'done' ? 'Pesanan Siap! Silakan Diambil'
-                : orderStatus === 'paid' ? 'Sedang Disiapkan...'
-                : 'Menunggu Konfirmasi Kasir'}
-              </div>
-              <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mt-0.5">
-                {orderStatus === 'done' ? 'Terima kasih sudah menunggu!'
-                : orderStatus === 'paid' ? 'Kasir sudah mengonfirmasi pesananmu'
-                : 'Pesananmu sedang dikonfirmasi...'}
-              </div>
+            <div className={`rounded-xl p-3.5 mb-4 text-center border transition-all ${STAGE[stage].box}`}>
+              {progress.queue_no && (
+                <div className="text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-muted)]">Nomor antrian</div>
+              )}
+              {progress.queue_no && (
+                <div className="text-[length:calc(32px*var(--fs))] font-extrabold leading-none mb-2">#{progress.queue_no}</div>
+              )}
+              <div className="text-2xl mb-1">{STAGE[stage].icon}</div>
+              <div className={`text-[length:calc(14px*var(--fs))] font-extrabold ${STAGE[stage].text}`}>{STAGE[stage].title}</div>
+              <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mt-0.5">{STAGE[stage].sub}</div>
             </div>
 
             {/* Order summary */}
@@ -696,9 +715,9 @@ export default function OrderPage() {
                 {lastPointsEarned > 0 && (
                   <div className="flex justify-between text-[length:calc(12px*var(--fs))]">
                     <span className="text-[var(--color-muted)]">
-                      Poin diperoleh{orderStatus === 'open' ? ' (pending)' : ''}
+                      Poin diperoleh{progress.status === 'open' ? ' (pending)' : ''}
                     </span>
-                    <span className={`tabular-nums font-bold ${orderStatus === 'open' ? 'text-[var(--color-muted)]' : 'text-[var(--color-primary)]'}`}>
+                    <span className={`tabular-nums font-bold ${progress.status === 'open' ? 'text-[var(--color-muted)]' : 'text-[var(--color-primary)]'}`}>
                       +{lastPointsEarned.toLocaleString('id')} poin
                     </span>
                   </div>
@@ -707,19 +726,19 @@ export default function OrderPage() {
                   <span className="text-[var(--color-text)]">Total poin</span>
                   <span className="tabular-nums text-[var(--color-primary)]">{lastPointsTotal.toLocaleString('id')} poin</span>
                 </div>
-                {orderStatus === 'open' && (lastSafeRedeem > 0 || lastPointsEarned > 0) && (
+                {progress.status === 'open' && (lastSafeRedeem > 0 || lastPointsEarned > 0) && (
                   <p className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-1.5 text-center italic">Diperbarui setelah kasir mengonfirmasi</p>
                 )}
               </div>
             )}
             <button
-              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0); setOrderId(null); setOrderStatus('open'); setActiveTab('menu') }}
+              onClick={() => { setSubmitted(false); setCustomerName(customer?.name ?? ''); setRedeemAmt(0); setOrderId(null); setProgress(NEW_PROGRESS); setActiveTab('menu') }}
               className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2"
             >
               🍽️ Pesan Lagi
             </button>
             <button
-              onClick={() => { setSubmitted(false); setOrderId(null); setOrderStatus('open'); setActiveTab('riwayat') }}
+              onClick={() => { setSubmitted(false); setOrderId(null); setProgress(NEW_PROGRESS); setActiveTab('riwayat') }}
               className="w-full py-3 rounded-xl border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] text-[length:calc(13px*var(--fs))] font-semibold hover:text-[var(--color-text)] transition-colors"
             >
               📋 Lihat Riwayat
@@ -878,7 +897,8 @@ export default function OrderPage() {
               </div>
             ) : (
               orderHistory.map(o => {
-                const isActive = o.status === 'open' || o.status === 'paid'
+                const st = customerStage(o)
+                const isActive = st !== 'ready'
                 return (
                   <div key={o.id} className={`bg-[var(--color-surface)] border-[1.5px] rounded-xl mb-3 overflow-hidden
                     ${isActive ? 'border-[var(--color-primary)]' : 'border-[var(--color-border)]'}`}>
@@ -886,14 +906,13 @@ export default function OrderPage() {
                     <div className={`px-4 py-3 flex items-center justify-between
                       ${isActive ? 'bg-[var(--color-primary-light)]' : ''}`}>
                       <div>
-                        <span className={`text-[length:calc(11px*var(--fs))] font-bold px-2 py-0.5 rounded-full ${
-                          o.status === 'done' ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]'
-                          : o.status === 'paid' ? 'bg-[var(--color-info-light)] text-[var(--color-info)]'
-                          : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {o.status === 'done' ? '✅ Selesai' : o.status === 'paid' ? '🍳 Sedang Disiapkan' : '⏳ Menunggu Konfirmasi'}
+                        <span className={`text-[length:calc(11px*var(--fs))] font-bold px-2 py-0.5 rounded-full ${STAGE[st].pill}`}>
+                          {o.queue_no ? `#${o.queue_no} · ` : ''}{STAGE[st].badge}
                         </span>
                         <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mt-1">{fmtDateTime(o.created_at)}</div>
+                        {st === 'issue' && (
+                          <div className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-danger)] mt-1">{STAGE.issue.sub}</div>
+                        )}
                       </div>
                       <div className="text-[length:calc(15px*var(--fs))] font-extrabold tabular-nums text-[var(--color-primary)]">{rp(o.total)}</div>
                     </div>
