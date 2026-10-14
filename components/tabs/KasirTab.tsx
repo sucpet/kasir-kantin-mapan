@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
@@ -19,43 +19,16 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [activeCat, setActiveCat] = useState('Semua')
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState('')
-  const [payModal, setPayModal] = useState<'bayar' | 'tab' | null>(null)
-  const [paidAmount, setPaidAmount] = useState('')
-  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
-  const [modalNameError, setModalNameError] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState('')
-  const [payMethodError, setPayMethodError] = useState(false)
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
-  const printOnOpen = useRef(false)
 
   useEffect(() => {
     fetchMenu()
   }, [])
-
-  useEffect(() => {
-    if (receiptOrder && printOnOpen.current) {
-      printOnOpen.current = false
-      if (localStorage.getItem('auto_print') !== 'true') return
-      const text = buildReceipt(receiptOrder)
-      if (isConnected()) {
-        printReceipt(text)
-          .then(() => onToast('🖨️ Struk berhasil dikirim ke printer'))
-          .catch(() => onToast('Gagal print ke printer Bluetooth'))
-      } else {
-        const t = setTimeout(() => {
-          const pz = document.getElementById('print-zone')
-          if (pz) pz.textContent = text
-          window.print()
-        }, 150)
-        return () => clearTimeout(t)
-      }
-    }
-  }, [receiptOrder])
 
   async function fetchMenu() {
     const { data } = await supabase
@@ -120,50 +93,29 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, note } : c))
   }
 
-  function openPayModal(mode: 'bayar' | 'tab') {
-    if (!cart.length) return
-    setCustomerName('')
-    setModalNameError(false)
-    setPaidAmount('')
-    setPaymentMethod('')
-    setPayMethodError(false)
-    setDiningType(null)
-    setDiningError(false)
-    setPayModal(mode)
-  }
-
   const total = orderSum(cart)
-  const change = paidAmount ? Math.max(0, Number(paidAmount) - total) : 0
 
-  async function confirmPay(mode: 'bayar' | 'tab') {
+  async function saveOrder() {
     if (!cart.length) return
-    if (!customerName.trim()) { setModalNameError(true); return }
     if (!diningType) { setDiningError(true); return }
-    if (mode === 'bayar' && !paymentMethod) { setPayMethodError(true); return }
-    setModalNameError(false)
-    setDiningError(false)
-    setPayMethodError(false)
     setLoading(true)
-    const cust = customerName.trim()
+    const name = customerName.trim()
 
     const { data: order, error } = await supabase
       .from('orders')
       .insert({
-        customer_name: cust,
-        status: mode === 'tab' ? 'open' : 'paid',
+        ...(name && { customer_name: name }),
+        status: 'open',
         total,
-        paid_amount: mode === 'bayar' ? (Number(paidAmount) || total) : null,
-        paid_at: mode === 'bayar' ? new Date().toISOString() : null,
-        payment_method: mode === 'bayar' ? paymentMethod : null,
         source: 'kasir',
         dining_type: diningType,
       })
       .select()
       .single()
 
-    if (error || !order) { onToast('Gagal menyimpan pesanan'); setLoading(false); return }
+    if (error || !order) { onToast('Gagal menyimpan pesanan. Coba lagi.'); setLoading(false); return }
 
-    await supabase.from('order_items').insert(
+    const { error: itemsError } = await supabase.from('order_items').insert(
       cart.map(c => ({
         order_id: order.id,
         menu_item_id: c.menuId,
@@ -173,6 +125,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
         note: c.note || null,
       }))
     )
+    if (itemsError) { onToast('Gagal menyimpan item pesanan. Cek di Antrian.'); setLoading(false); return }
 
     const fullOrder: Order = {
       ...order,
@@ -180,49 +133,36 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     }
 
     doClearCart()
-    setPayModal(null)
-    setPaidAmount('')
     setLoading(false)
     onOrderCreated()
+    onToast(`✓ Pesanan #${order.queue_no} disimpan`)
+    autoPrint(fullOrder)
+  }
 
-    printOnOpen.current = true
-    setReceiptOrder(fullOrder)
-    if (mode === 'tab') onToast(`Orderan terbuka "${cust}" disimpan!`)
+  function autoPrint(o: Order) {
+    if (localStorage.getItem('auto_print') !== 'true') return
+    const text = buildReceipt(o)
+    if (isConnected()) {
+      printReceipt(text).catch(() => onToast('Gagal print ke printer Bluetooth'))
+    } else {
+      const pz = document.getElementById('print-zone')
+      if (pz) pz.textContent = text
+      setTimeout(() => window.print(), 150)
+    }
   }
 
   function buildReceipt(o: Order): string {
     const line = '--------------------------------'
-    const jenis = o.dining_type === 'dibungkus' ? 'Dibungkus' : o.dining_type === 'makan_ditempat' ? 'Di Tempat' : '-'
-    let r = `KASIR KANTIN\n${line}\nPelanggan : ${o.customer_name}\nJenis     : ${jenis}\n${line}\n`
+    const jenis = o.dining_type === 'dibungkus' ? 'Dibungkus' : 'Di Tempat'
+    const nama = o.customer_name && o.customer_name !== 'Tamu' ? ` · ${o.customer_name}` : ''
+    let r = `KASIR KANTIN\n${line}\nAntrian   : #${o.queue_no}${nama}\nJenis     : ${jenis}\n${line}\n`
     o.order_items?.forEach(i => {
       r += `${i.name}\n`
       if (i.note) r += `  * ${i.note}\n`
       r += `  ${i.qty} x ${rp(i.price).padEnd(12)}${rp(i.price * i.qty)}\n`
     })
-    r += `${line}\nTOTAL     : ${rp(o.total)}\n`
-    if (o.status === 'paid') {
-      r += `BAYAR     : ${rp(o.paid_amount ?? o.total)}\nKEMBALI   : ${rp(Math.max(0, (o.paid_amount ?? o.total) - o.total))}\n`
-      if (o.payment_method) r += `METODE    : ${o.payment_method}\n`
-    } else {
-      r += `STATUS    : BELUM DIBAYAR\n`
-    }
-    r += `${line}\n      Terima kasih! 😊`
+    r += `${line}\nTOTAL     : ${rp(o.total)}\nSTATUS    : BELUM DIBAYAR\n${line}\n      Terima kasih! 😊`
     return r
-  }
-
-  async function doPrint() {
-    if (!receiptOrder) return
-    const text = buildReceipt(receiptOrder)
-    if (isConnected()) {
-      try {
-        await printReceipt(text)
-        onToast('🖨️ Struk berhasil dikirim ke printer')
-      } catch { onToast('Gagal print ke printer Bluetooth') }
-    } else {
-      const pz = document.getElementById('print-zone')
-      if (pz) pz.textContent = text
-      window.print()
-    }
   }
 
   const allOptsSelected = optionItem
@@ -344,11 +284,34 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
             <span className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Total</span>
             <span className="text-[length:calc(20px*var(--fs))] font-extrabold tabular-nums">{rp(total)}</span>
           </div>
-          <button onClick={() => openPayModal('bayar')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] bg-[var(--color-success)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-1.5 disabled:opacity-40 hover:bg-[#1f6440] transition-colors">
-            ✅ Bayar Sekarang
-          </button>
-          <button onClick={() => openPayModal('tab')} disabled={!cart.length} className="w-full py-2.5 rounded-[8px] border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[length:calc(13px*var(--fs))] font-bold disabled:opacity-40 hover:bg-[var(--color-primary-light)] transition-colors">
-            📌 Orderan Terbuka
+          <div className="grid grid-cols-2 gap-2 mb-1">
+            {([
+              { id: 'makan_ditempat', label: '🍽️ Makan di Tempat' },
+              { id: 'dibungkus', label: '🥡 Bungkus' },
+            ] as const).map(opt => (
+              <button key={opt.id} type="button"
+                onClick={() => { setDiningType(opt.id); setDiningError(false) }}
+                className={`px-2 py-3 rounded-xl text-[length:calc(13px*var(--fs))] font-extrabold border-2 transition-all leading-tight
+                  ${diningType === opt.id
+                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                    : diningError
+                    ? 'bg-[var(--color-danger-light)] border-[var(--color-danger)] text-[var(--color-text)]'
+                    : 'bg-[var(--color-surface2)] border-[var(--color-border)] text-[var(--color-text)]'
+                  }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {diningError && <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-danger)] font-bold mb-1">Pilih Makan di Tempat atau Bungkus</p>}
+          <input
+            value={customerName}
+            onChange={e => setCustomerName(e.target.value)}
+            placeholder="Nama pelanggan (boleh kosong)"
+            className="w-full mt-1 mb-2 px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none bg-transparent focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)]"
+          />
+          <button onClick={saveOrder} disabled={!cart.length || loading}
+            className="w-full py-4 rounded-xl bg-[var(--color-success)] text-white text-[length:calc(16px*var(--fs))] font-extrabold disabled:opacity-40 active:scale-[0.98] transition-transform">
+            {loading ? 'Menyimpan...' : '✓ Simpan Pesanan'}
           </button>
         </div>
       </div>
@@ -389,131 +352,6 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           </button>
           <button onClick={() => setOptionItem(null)} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             Batal
-          </button>
-        </Modal>
-      )}
-
-      {/* Payment modal */}
-      {payModal && (
-        <Modal onClose={() => { setPayModal(null); setPaidAmount('') }}>
-          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-4">
-            {payModal === 'tab' ? '📌 Orderan Terbuka' : '💳 Bayar Sekarang'}
-          </h2>
-          <div className="mb-3">
-            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama *</label>
-            <input
-              autoFocus
-              value={customerName}
-              onChange={e => { setCustomerName(e.target.value); if (e.target.value.trim()) setModalNameError(false) }}
-              placeholder="cth: Meja 3 / Budi"
-              className={`w-full px-3 py-2 border-[1.5px] rounded-lg text-[length:calc(13px*var(--fs))] outline-none transition-colors
-                ${modalNameError ? 'border-[var(--color-danger)] bg-[var(--color-danger-light)]' : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'}`}
-            />
-            {modalNameError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mt-1 font-semibold">Nama wajib diisi</p>}
-          </div>
-          <div className="bg-[var(--color-primary-light)] rounded-[10px] p-3.5 mb-4">
-            {cart.map(i => (
-              <div key={i.cartKey} className="flex justify-between text-[length:calc(12px*var(--fs))] py-0.5 tabular-nums">
-                <span>{i.name} ×{i.qty}</span><span>{rp(i.price * i.qty)}</span>
-              </div>
-            ))}
-            <div className="flex justify-between text-[length:calc(16px*var(--fs))] font-extrabold text-[var(--color-primary)] mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums">
-              <span>TOTAL</span><span>{rp(total)}</span>
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Jenis Pesanan *</label>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { id: 'makan_ditempat', label: 'Di Tempat', icon: '🍽️' },
-                { id: 'dibungkus', label: 'Dibungkus', icon: '🥡' },
-              ] as const).map(opt => (
-                <button key={opt.id} type="button"
-                  onClick={() => { setDiningType(opt.id); setDiningError(false) }}
-                  className={`py-2 rounded-lg text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] transition-all
-                    ${diningType === opt.id
-                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
-                      : diningError
-                      ? 'border-[var(--color-danger)] text-[var(--color-muted)]'
-                      : 'bg-[var(--color-surface2)] border-[var(--color-border)] text-[var(--color-muted)]'
-                    }`}>
-                  {opt.icon} {opt.label}
-                </button>
-              ))}
-            </div>
-            {diningError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mt-1 font-semibold">Pilih jenis pesanan</p>}
-          </div>
-
-          {payModal === 'bayar' && (
-            <div className="mb-3">
-              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Metode Pembayaran *</label>
-              <div className="grid grid-cols-3 gap-2 mb-1">
-                {[{ id: 'Tunai', icon: '💵' }, { id: 'Transfer', icon: '🏦' }, { id: 'QRIS', icon: '📱' }].map(m => (
-                  <button key={m.id} type="button"
-                    onClick={() => { setPaymentMethod(m.id); setPayMethodError(false) }}
-                    className={`py-2 rounded-lg text-[length:calc(12px*var(--fs))] font-bold border-[1.5px] transition-all
-                      ${paymentMethod === m.id
-                        ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
-                        : `bg-[var(--color-surface2)] text-[var(--color-muted)] ${payMethodError ? 'border-[var(--color-danger)]' : 'border-[var(--color-border)]'}`
-                      }`}>
-                    {m.icon} {m.id}
-                  </button>
-                ))}
-              </div>
-              {payMethodError && <p className="text-[length:calc(11px*var(--fs))] text-[var(--color-danger)] mb-2 font-semibold">Pilih metode pembayaran</p>}
-            </div>
-          )}
-
-          {payModal === 'bayar' && (
-            <div className="mb-3">
-              <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Uang Diterima</label>
-              <input
-                type="number" inputMode="numeric"
-                value={paidAmount}
-                onChange={e => setPaidAmount(e.target.value)}
-                placeholder={String(total)}
-                className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-lg text-[length:calc(13px*var(--fs))] outline-none focus:border-[var(--color-primary)]"
-              />
-              {paidAmount && (
-                <div className={`flex justify-between text-[length:calc(14px*var(--fs))] font-extrabold mt-2 pt-2 border-t border-[var(--color-border)] tabular-nums ${change >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>
-                  <span>Kembalian</span>
-                  <span>{rp(change)}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {payModal === 'tab' && (
-            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-3">Pesanan disimpan sebagai orderan terbuka. Bayar nanti dari tab Pesanan.</p>
-          )}
-
-          <button
-            onClick={() => confirmPay(payModal)}
-            disabled={loading}
-            className={`w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold text-white mb-1.5 disabled:opacity-50 transition-colors
-              ${payModal === 'bayar' ? 'bg-[var(--color-success)] hover:bg-[#1f6440]' : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-mid)]'}`}
-          >
-            {loading ? 'Menyimpan...' : payModal === 'tab' ? '📌 Simpan Orderan Terbuka' : '✅ Konfirmasi Bayar'}
-          </button>
-          <button onClick={() => { setPayModal(null); setPaidAmount('') }} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
-            Batal
-          </button>
-        </Modal>
-      )}
-
-      {/* Receipt modal */}
-      {receiptOrder && (
-        <Modal onClose={() => setReceiptOrder(null)}>
-          <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-4">🧾 Struk Pesanan</h2>
-          <pre className="font-mono text-[length:calc(11px*var(--fs))] leading-relaxed bg-[var(--color-surface2)] border border-dashed border-[var(--color-border)] rounded-lg p-3 overflow-x-auto whitespace-pre">
-            {buildReceipt(receiptOrder)}
-          </pre>
-          <button onClick={doPrint} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-bold bg-[var(--color-primary)] text-white mt-3 hover:bg-[var(--color-primary-mid)] transition-colors">
-            🖨️ Print
-          </button>
-          <button onClick={() => setReceiptOrder(null)} className="w-full py-2.5 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold bg-[var(--color-surface2)] border border-[var(--color-border)] text-[var(--color-muted)] mt-1.5 hover:text-[var(--color-text)] transition-colors">
-            Tutup
           </button>
         </Modal>
       )}

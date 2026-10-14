@@ -24,7 +24,7 @@
   - Verify: self-check `assert` untuk fungsi kembalian/penjumlahan nominal; `tsc`, `build`, lint; Calvin cek di tablet (checkpoint).
   - Files: `components/tabs/PesananTab.tsx`, `components/PayModal.tsx`, `lib/utils.ts` (fungsi kembalian), `components/App.tsx` (badge)
 
-- [ ] **T3: Pesanan Baru disederhanakan**
+- [x] **T3: Pesanan Baru disederhanakan**
   - Acceptance:
     - Panel kanan: keranjang (item besar, −/+), pilihan besar **Makan di Tempat / Bungkus**, nama opsional, satu tombol **Simpan**.
     - Pesanan disimpan `status: 'open'` dan langsung muncul di Antrian. Toast menampilkan nomor antrian ("Pesanan #12 disimpan").
