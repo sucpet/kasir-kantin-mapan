@@ -62,18 +62,20 @@ export default function PayModal({ order, onClose, onPaid, onToast }: Props) {
             +{n.toLocaleString('id-ID')}
           </button>
         ))}
-        <button onClick={() => setCash(0)} disabled={cash === 0}
-          className="py-3 rounded-xl border-[1.5px] border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger-light)] text-[length:calc(14px*var(--fs))] font-extrabold leading-tight disabled:opacity-40">
-          ✕ Hapus Nominal
-        </button>
       </div>
 
       <label className="block text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-muted)] mb-1">Uang diterima</label>
-      <input type="text" inputMode="numeric"
-        value={cash ? cash.toLocaleString('id-ID') : ''}
-        onChange={e => setCash(Number(e.target.value.replace(/\D/g, '')) || 0)}
-        placeholder="0"
-        className="w-full px-4 py-3 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(20px*var(--fs))] font-extrabold tabular-nums text-right outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)] mb-3" />
+      <div className="flex gap-2 mb-3">
+        <input type="text" inputMode="numeric"
+          value={cash ? cash.toLocaleString('id-ID') : ''}
+          onChange={e => setCash(Number(e.target.value.replace(/\D/g, '')) || 0)}
+          placeholder="0"
+          className="flex-1 min-w-0 px-4 py-3 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(20px*var(--fs))] font-extrabold tabular-nums text-right outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)]" />
+        <button onClick={() => setCash(0)} disabled={cash === 0}
+          className="flex-shrink-0 px-3 rounded-xl border-[1.5px] border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger-light)] text-[length:calc(14px*var(--fs))] font-extrabold leading-tight disabled:opacity-40">
+          ✕ Hapus<br />Nominal
+        </button>
+      </div>
 
       {cash > 0 && (
         <div className={`flex justify-between items-center rounded-xl px-4 py-3 mb-3 ${change >= 0 ? 'bg-[var(--color-success-light)] text-[var(--color-success)]' : 'bg-[var(--color-danger-light)] text-[var(--color-danger)]'}`}>
