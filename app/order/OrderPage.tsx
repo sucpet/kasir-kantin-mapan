@@ -169,6 +169,14 @@ export default function OrderPage() {
     if (activeTab === 'riwayat' && phone) fetchHistory()
   }, [activeTab, phone]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Riwayat ikut update selama masih ada pesanan yang belum selesai
+  const historyHasActive = orderHistory.some(o => customerStage(o) !== 'ready')
+  useEffect(() => {
+    if (activeTab !== 'riwayat' || !historyHasActive) return
+    const t = setInterval(() => fetchHistory(true), 5000)
+    return () => clearInterval(t)
+  }, [activeTab, historyHasActive, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function logout() {
     clearSession()
     setAuthStep('login')
@@ -380,12 +388,12 @@ export default function OrderPage() {
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ' ' + fmtTime(iso)
   }
 
-  async function fetchHistory() {
+  async function fetchHistory(silent = false) {
     if (!token) return
-    setLoadingHistory(true)
+    if (!silent) setLoadingHistory(true)
     const { data } = await supabase.rpc('customer_orders', { p_token: token })
     if (data) setOrderHistory(data)
-    setLoadingHistory(false)
+    if (!silent) setLoadingHistory(false)
   }
 
   function reorder(histOrder: Order) {
@@ -876,7 +884,7 @@ export default function OrderPage() {
           <div className="max-w-2xl mx-auto p-4 pb-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[length:calc(13px*var(--fs))] font-extrabold text-[var(--color-text)]">Riwayat Pesanan</span>
-              <button onClick={fetchHistory} className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+              <button onClick={() => fetchHistory()} className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
                 🔄 Refresh
               </button>
             </div>
