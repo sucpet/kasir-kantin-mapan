@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
@@ -23,6 +23,8 @@ type StoredSession = { phone: string; token: string; name: string; points: numbe
 type LoginResult = { status: string; token?: string; name?: string; points?: number; remaining?: number }
 
 const PIN_RE = /^[0-9]{6}$/
+
+const fmtClock = (d: Date) => d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
 type Progress = { status: string; served_at: string | null; payment_issue_at: string | null; queue_no: number | null }
 const NEW_PROGRESS: Progress = { status: 'open', served_at: null, payment_issue_at: null, queue_no: null }
@@ -124,6 +126,7 @@ export default function OrderPage() {
   const [lastHadPhone, setLastHadPhone] = useState(false)
   const [orderId, setOrderId] = useState<string | null>(null)
   const [progress, setProgress] = useState<Progress>(NEW_PROGRESS)
+  const [lastSync, setLastSync] = useState<Date | null>(null)
   const stage = customerStage(progress)
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
@@ -142,28 +145,50 @@ export default function OrderPage() {
   }, [])
 
   // Poll progres (anon tidak bisa subscribe realtime ke tabel orders karena RLS)
+  async function pollProgress() {
+    if (!orderId) return
+    const { data } = await supabase.rpc('order_progress', { p_order_id: orderId })
+    if (!data) return
+    setLastSync(new Date())
+    const next = data as Progress
+    if (JSON.stringify(next) === JSON.stringify(progress)) return
+    setProgress(next)
+    if (progress.status === 'open' && next.status !== 'open' && token) {
+      const { data: me } = await supabase.rpc('customer_me', { p_token: token })
+      if (me) {
+        setCustomer(prev => {
+          const updated = prev ? { ...prev, points: me.points } : null
+          if (updated) saveSession(phone, token, updated)
+          return updated
+        })
+        setLastPointsTotal(me.points)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!submitted || !orderId || stage === 'ready') return
-    const t = setInterval(async () => {
-      const { data } = await supabase.rpc('order_progress', { p_order_id: orderId })
-      if (!data) return
-      const next = data as Progress
-      if (JSON.stringify(next) === JSON.stringify(progress)) return
-      setProgress(next)
-      if (progress.status === 'open' && next.status !== 'open' && token) {
-        const { data: me } = await supabase.rpc('customer_me', { p_token: token })
-        if (me) {
-          setCustomer(prev => {
-            const updated = prev ? { ...prev, points: me.points } : null
-            if (updated) saveSession(phone, token, updated)
-            return updated
-          })
-          setLastPointsTotal(me.points)
-        }
-      }
-    }, 5000)
+    const t = setInterval(pollProgress, 5000)
     return () => clearInterval(t)
   }, [submitted, orderId, progress]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Browser HP bisa menghentikan timer saat layar mati / pindah app: cek langsung saat halaman terlihat lagi
+  const refreshNow = useRef(() => {})
+  refreshNow.current = () => {
+    if (submitted && stage !== 'ready') pollProgress()
+    if (activeTab === 'riwayat') fetchHistory(true)
+  }
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshNow.current() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('pageshow', onVisible)
+    }
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'riwayat' && phone) fetchHistory()
@@ -392,7 +417,7 @@ export default function OrderPage() {
     if (!token) return
     if (!silent) setLoadingHistory(true)
     const { data } = await supabase.rpc('customer_orders', { p_token: token })
-    if (data) setOrderHistory(data)
+    if (data) { setOrderHistory(data); setLastSync(new Date()) }
     if (!silent) setLoadingHistory(false)
   }
 
@@ -640,6 +665,7 @@ export default function OrderPage() {
               <div className="text-2xl mb-1">{STAGE[stage].icon}</div>
               <div className={`text-[length:calc(14px*var(--fs))] font-extrabold ${STAGE[stage].text}`}>{STAGE[stage].title}</div>
               <div className="text-[length:calc(11px*var(--fs))] text-[var(--color-muted)] mt-0.5">{STAGE[stage].sub}</div>
+              {lastSync && <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)] mt-1.5 opacity-70">Diperbarui {fmtClock(lastSync)}</div>}
             </div>
 
             {/* Order summary */}
@@ -883,7 +909,10 @@ export default function OrderPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl mx-auto p-4 pb-8">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[length:calc(13px*var(--fs))] font-extrabold text-[var(--color-text)]">Riwayat Pesanan</span>
+              <div>
+                <div className="text-[length:calc(13px*var(--fs))] font-extrabold text-[var(--color-text)]">Riwayat Pesanan</div>
+                {lastSync && <div className="text-[length:calc(10px*var(--fs))] text-[var(--color-muted)]">Diperbarui {fmtClock(lastSync)}</div>}
+              </div>
               <button onClick={() => fetchHistory()} className="text-[length:calc(11px*var(--fs))] font-semibold text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
                 🔄 Refresh
               </button>
