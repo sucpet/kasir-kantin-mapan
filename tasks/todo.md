@@ -32,7 +32,7 @@
   - Verify: `tsc`, `build`, lint; hitung ketukan untuk Success Criteria #1 dengan membaca alur kode.
   - Files: `components/tabs/KasirTab.tsx`
 
-- [ ] **T4: Navigasi 2 tab + ⚙️ Kelola dengan PIN**
+- [x] **T4: Navigasi 2 tab + ⚙️ Kelola dengan PIN**
   - Acceptance:
     - Header hanya berisi jam dan **⚙️ Kelola**. Tab bar: **➕ Pesanan Baru** dan **📋 Antrian (n)**, besar.
     - Kelola meminta PIN (atau membuat PIN pertama kali; disimpan sebagai SHA-256 di `settings.admin_pin_hash`).

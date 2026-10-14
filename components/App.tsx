@@ -1,27 +1,20 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Sun, Moon, QrCode, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import KasirTab from './tabs/KasirTab'
 import PesananTab from './tabs/PesananTab'
-import MenuTab from './tabs/MenuTab'
-import RekapTab from './tabs/RekapTab'
-import StokTab from './tabs/StokTab'
 import { useToast } from './Toast'
 import { supabase } from '@/lib/supabase'
-import QRModal from './QRModal'
-import SettingsModal from './SettingsModal'
+import KelolaPanel from './KelolaPanel'
 import { Order } from '@/lib/types'
 import { rp } from '@/lib/utils'
 
-type Tab = 'kasir' | 'pesanan' | 'menu' | 'rekap' | 'stok'
+type Tab = 'kasir' | 'pesanan'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'kasir',   label: 'Kasir',   icon: '🛒' },
-  { id: 'pesanan', label: 'Pesanan', icon: '📋' },
-  { id: 'menu',    label: 'Menu',    icon: '🍽️' },
-  { id: 'stok',    label: 'Stok',    icon: '📦' },
-  { id: 'rekap',   label: 'Rekap',   icon: '📊' },
+  { id: 'kasir',   label: 'Pesanan Baru', icon: '➕' },
+  { id: 'pesanan', label: 'Antrian',      icon: '📋' },
 ]
 
 export default function App() {
@@ -32,8 +25,7 @@ export default function App() {
   const [time, setTime] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [isLight, setIsLight] = useState(false)
-  const [showQR, setShowQR] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showKelola, setShowKelola] = useState(false)
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null)
   const { show: toast, node: toastNode } = useToast()
 
@@ -126,33 +118,11 @@ export default function App() {
             <div className="text-[length:calc(10px*var(--fs))] opacity-50 truncate max-w-[calc(140px*var(--fs))]">{userEmail}</div>
           </div>
           <button
-            onClick={() => setShowSettings(true)}
-            title="Pengaturan"
-            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            onClick={() => setShowKelola(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-[length:calc(13px*var(--fs))] font-semibold"
           >
             <Settings size={14} className="size-[calc(14px*var(--fs))]" />
-          </button>
-          <button
-            onClick={() => setShowQR(true)}
-            title="QR Pesan Mandiri"
-            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <QrCode size={14} className="size-[calc(14px*var(--fs))]" />
-          </button>
-          <button
-            onClick={toggleTheme}
-            title={isLight ? 'Mode Gelap' : 'Mode Terang'}
-            className="flex items-center justify-center w-[calc(30px*var(--fs))] h-[calc(30px*var(--fs))] rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            {isLight ? <Moon size={14} className="size-[calc(14px*var(--fs))]" /> : <Sun size={14} className="size-[calc(14px*var(--fs))]" />}
-          </button>
-          <button
-            onClick={handleLogout}
-            title="Keluar"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-[length:calc(12px*var(--fs))] font-semibold"
-          >
-            <LogOut size={14} className="size-[calc(14px*var(--fs))]" />
-            <span className="hidden sm:inline">Keluar</span>
+            Kelola
           </button>
         </div>
       </header>
@@ -163,18 +133,18 @@ export default function App() {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[length:calc(11px*var(--fs))] font-medium relative transition-colors
-              ${tab === t.id ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-muted)]'}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-[length:calc(16px*var(--fs))] relative transition-colors
+              ${tab === t.id ? 'text-[var(--color-primary)] font-extrabold' : 'text-[var(--color-muted)] font-semibold'}`}
           >
             <span className="text-[length:calc(18px*var(--fs))] leading-none">{t.icon}</span>
             <span>{t.label}</span>
-            {tab === t.id && (
-              <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[var(--color-primary)] rounded-t-sm" />
-            )}
             {t.id === 'pesanan' && queueCount > 0 && (
-              <span className="absolute top-1.5 right-[calc(50%-18px)] bg-[var(--color-danger)] text-white text-[length:calc(10px*var(--fs))] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+              <span className="bg-[var(--color-danger)] text-white text-[length:calc(12px*var(--fs))] font-bold rounded-full min-w-[calc(22px*var(--fs))] px-1.5 py-0.5 text-center">
                 {queueCount}
               </span>
+            )}
+            {tab === t.id && (
+              <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[var(--color-primary)] rounded-t-sm" />
             )}
           </button>
         ))}
@@ -184,14 +154,18 @@ export default function App() {
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'kasir'   && <KasirTab   onToast={toast} onOrderCreated={handleOrderCreated} />}
         {tab === 'pesanan' && <PesananTab onToast={toast} refreshKey={refreshKey} onOrderSettled={handleOrderCreated} />}
-        {tab === 'menu'    && <MenuTab    onToast={toast} />}
-        {tab === 'stok'    && <StokTab    onToast={toast} />}
-        {tab === 'rekap'   && <RekapTab />}
       </div>
 
       {toastNode}
-      {showQR && <QRModal onClose={() => setShowQR(false)} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onToast={toast} />}
+      {showKelola && (
+        <KelolaPanel
+          onClose={() => setShowKelola(false)}
+          onToast={toast}
+          isLight={isLight}
+          onToggleTheme={toggleTheme}
+          onLogout={handleLogout}
+        />
+      )}
 
       {newOrderAlert && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
@@ -216,9 +190,9 @@ export default function App() {
               </div>
             </div>
             <button
-              onClick={() => { setNewOrderAlert(null); setTab('pesanan') }}
+              onClick={() => { setNewOrderAlert(null); setShowKelola(false); setTab('pesanan') }}
               className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2 hover:opacity-90 transition-opacity">
-              📋 Lihat di Pesanan
+              📋 Lihat di Antrian
             </button>
             <button
               onClick={() => setNewOrderAlert(null)}
