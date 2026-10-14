@@ -62,9 +62,9 @@ export default function PayModal({ order, onClose, onPaid, onToast }: Props) {
             +{n.toLocaleString('id-ID')}
           </button>
         ))}
-        <button onClick={() => setCash(0)}
-          className="py-3 rounded-xl border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] bg-[var(--color-surface2)] text-[length:calc(15px*var(--fs))] font-bold">
-          Hapus
+        <button onClick={() => setCash(0)} disabled={cash === 0}
+          className="py-3 rounded-xl border-[1.5px] border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger-light)] text-[length:calc(14px*var(--fs))] font-extrabold leading-tight disabled:opacity-40">
+          ✕ Hapus Nominal
         </button>
       </div>
 
