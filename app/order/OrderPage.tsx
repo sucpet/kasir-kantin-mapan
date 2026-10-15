@@ -57,6 +57,34 @@ const STAGE: Record<CustomerStage, { icon: string; title: string; sub: string; b
   },
 }
 
+// - [angka] + ; angka bisa diketik. Tombol - di angka 1 memanggil onChange(0) (hapus), kecuali min=1.
+function QtyInput({ value, onChange, min = 0 }: { value: number; onChange: (n: number) => void; min?: number }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const btn = 'w-8 h-8 flex-shrink-0 rounded-full border-[1.5px] border-[var(--color-border)] flex items-center justify-center transition-colors disabled:opacity-40'
+  return (
+    <div className="flex items-center gap-1.5">
+      <button type="button" aria-label="Kurangi" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}
+        className={`${btn} text-[var(--color-muted)] hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]`}>
+        <Minus size={11} className="size-[calc(11px*var(--fs))]" strokeWidth={3} />
+      </button>
+      <input type="text" inputMode="numeric" aria-label="Jumlah"
+        value={draft ?? String(value)}
+        onFocus={e => e.target.select()}
+        onChange={e => {
+          const d = e.target.value.replace(/\D/g, '').slice(0, 3)
+          setDraft(d)
+          if (Number(d) >= 1) onChange(Number(d))
+        }}
+        onBlur={() => setDraft(null)}
+        className="w-[calc(40px*var(--fs))] py-1 text-center rounded-lg border-[1.5px] border-[var(--color-border)] bg-transparent text-[length:calc(14px*var(--fs))] font-extrabold tabular-nums text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]" />
+      <button type="button" aria-label="Tambah" onClick={() => onChange(value + 1)}
+        className={`${btn} text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white`}>
+        <Plus size={11} className="size-[calc(11px*var(--fs))]" strokeWidth={3} />
+      </button>
+    </div>
+  )
+}
+
 function getStoredSession(): StoredSession | null {
   if (typeof window === 'undefined') return null
   try {
@@ -90,6 +118,7 @@ export default function OrderPage() {
   const [showCart, setShowCart] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Picked>({})
+  const [pendingQty, setPendingQty] = useState(1)
   const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -324,27 +353,26 @@ export default function OrderPage() {
     const opts = item.options ?? []
     if (opts.length > 0) {
       setPendingOpts({})
+      setPendingQty(1)
       setOptionItem(item)
     } else {
       doAddToCart(item, {})
     }
   }
 
-  function doAddToCart(item: MenuItem, picked: Picked) {
+  function doAddToCart(item: MenuItem, picked: Picked, qty = 1) {
     const line = pickedLine(item, item.options ?? [], picked)
     const cartKey = line.key ? `${item.id}::${line.key}` : item.id
     setCart(prev => {
       const ex = prev.find(c => c.cartKey === cartKey)
-      if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c)
-      return [...prev, { menuId: item.id, cartKey, name: line.name, price: line.price, qty: 1, note: '', opts: line.opts }]
+      if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + qty } : c)
+      return [...prev, { menuId: item.id, cartKey, name: line.name, price: line.price, qty, note: '', opts: line.opts }]
     })
     setOptionItem(null)
   }
 
-  function adjustQty(cartKey: string, delta: number) {
-    setCart(prev =>
-      prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + delta } : c).filter(c => c.qty > 0)
-    )
+  function setQty(cartKey: string, qty: number) {
+    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, qty } : c).filter(c => c.qty > 0))
   }
 
   function updateNote(cartKey: string, note: string) {
@@ -429,7 +457,7 @@ export default function OrderPage() {
       if (!oi.menu_item_id) continue
       const mi = menu.find(m => m.id === oi.menu_item_id && m.available && !isHabis(m))
       if (!mi) continue
-      for (let i = 0; i < oi.qty; i++) doAddToCart(mi, {})
+      doAddToCart(mi, {}, oi.qty)
       added++
     }
     if (added > 0) {
@@ -879,16 +907,8 @@ export default function OrderPage() {
                     Stok Habis
                   </div>
                 ) : inCart > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <button onClick={() => adjustQty(item.id, -1)}
-                      className="w-7 h-7 rounded-full border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] flex items-center justify-center hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors">
-                      <Minus size={11} className="size-[calc(11px*var(--fs))]" strokeWidth={3} />
-                    </button>
-                    <span className="text-[length:calc(14px*var(--fs))] font-extrabold tabular-nums text-[var(--color-text)]">{inCart}</span>
-                    <button onClick={() => adjustQty(item.id, 1)}
-                      className="w-7 h-7 rounded-full border-[1.5px] border-[var(--color-border)] text-[var(--color-primary)] flex items-center justify-center hover:bg-[var(--color-primary)] hover:text-white transition-colors">
-                      <Plus size={11} className="size-[calc(11px*var(--fs))]" strokeWidth={3} />
-                    </button>
+                  <div className="flex justify-center">
+                    <QtyInput value={inCart} onChange={n => setQty(item.id, n)} />
                   </div>
                 ) : (
                   <button onClick={() => tapped(item)}
@@ -999,7 +1019,7 @@ export default function OrderPage() {
           <div className="w-full bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[70vh] overflow-y-auto">
             <div className="w-9 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
             <h3 className="text-[length:calc(15px*var(--fs))] font-extrabold mb-1 text-[var(--color-text)]">{optionItem.name}</h3>
-            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options, pendingOpts).price)}</p>
+            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options, pendingOpts).price)}{pendingQty > 1 && ` × ${pendingQty}`}</p>
             {optionItem.options.map((opt: MenuOption) => (
               <div key={opt.name} className="mb-4">
                 <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name}{opt.multi ? ' (boleh lebih dari satu)' : ''}</p>
@@ -1017,13 +1037,17 @@ export default function OrderPage() {
                 </div>
               </div>
             ))}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Jumlah</p>
+              <QtyInput value={pendingQty} onChange={setPendingQty} min={1} />
+            </div>
             <button
               onClick={() => {
-                if (pickedComplete(optionItem.options, pendingOpts)) doAddToCart(optionItem, pendingOpts)
+                if (pickedComplete(optionItem.options, pendingOpts)) doAddToCart(optionItem, pendingOpts, pendingQty)
               }}
               disabled={!pickedComplete(optionItem.options, pendingOpts)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2 disabled:opacity-40">
-              + Tambah ke Keranjang
+              + Tambah {pendingQty} ke Keranjang
             </button>
             <button onClick={() => setOptionItem(null)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[length:calc(13px*var(--fs))] font-semibold text-[var(--color-muted)]">
@@ -1048,15 +1072,7 @@ export default function OrderPage() {
                     <span className="text-[length:calc(13px*var(--fs))] tabular-nums text-[var(--color-muted)] flex-shrink-0">{rp(i.price * i.qty)}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <button onClick={() => adjustQty(i.cartKey, -1)}
-                      className="w-6 h-6 rounded-full border border-[var(--color-border)] text-[var(--color-muted)] flex items-center justify-center hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors">
-                      <Minus size={10} className="size-[calc(10px*var(--fs))]" strokeWidth={3} />
-                    </button>
-                    <span className="text-[length:calc(13px*var(--fs))] font-bold tabular-nums w-4 text-center text-[var(--color-text)]">{i.qty}</span>
-                    <button onClick={() => adjustQty(i.cartKey, 1)}
-                      className="w-6 h-6 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] flex items-center justify-center hover:bg-[var(--color-primary)] hover:text-white transition-colors">
-                      <Plus size={10} className="size-[calc(10px*var(--fs))]" strokeWidth={3} />
-                    </button>
+                    <QtyInput value={i.qty} onChange={n => setQty(i.cartKey, n)} />
                     <input value={i.note} onChange={e => updateNote(i.cartKey, e.target.value)}
                       placeholder="Catatan..."
                       className="text-[length:calc(11px*var(--fs))] px-2 py-1 border border-[var(--color-border)] rounded-md outline-none focus:border-[var(--color-primary)] bg-transparent placeholder:text-[var(--color-muted)] flex-1 text-[var(--color-text)]" />
