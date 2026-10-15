@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
+import ConfirmModal from '@/components/ConfirmModal'
 import { rp, orderSum, fmtTime, customerStage, CustomerStage, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
 
 type CartItem = {
@@ -124,6 +125,7 @@ export default function OrderPage() {
   const [pendingOpts, setPendingOpts] = useState<Picked>({})
   const [pendingQty, setPendingQty] = useState(1)
   const [pendingNote, setPendingNote] = useState('')
+  const [ask, setAsk] = useState<{ title: string; message?: string; label: string; run: () => void } | null>(null)
   const [editKey, setEditKey] = useState<string | null>(null)  // baris keranjang yang sedang diubah
   const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
@@ -414,7 +416,15 @@ export default function OrderPage() {
   }
 
   function setQty(cartKey: string, qty: number) {
-    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, qty } : c).filter(c => c.qty > 0))
+    if (qty <= 0) {
+      const line = cart.find(c => c.cartKey === cartKey)
+      setAsk({
+        title: 'Hapus item ini?', message: line?.name, label: 'Ya, Hapus',
+        run: () => setCart(prev => prev.filter(c => c.cartKey !== cartKey)),
+      })
+      return
+    }
+    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, qty } : c))
   }
 
   const total = orderSum(cart)
@@ -869,7 +879,7 @@ export default function OrderPage() {
             {(customer?.points ?? 0).toLocaleString('id')} poin
           </span>
           <button
-            onClick={() => { if (cart.length === 0 || confirm('Keranjang akan dikosongkan. Keluar?')) logout() }}
+            onClick={() => cart.length === 0 ? logout() : setAsk({ title: 'Keluar?', message: 'Keranjang akan dikosongkan.', label: 'Ya, Keluar', run: logout })}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface2)] text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-muted)] hover:text-[var(--color-danger)] hover:border-[var(--color-danger)] transition-colors"
           >
             <LogOut size={14} className="size-[calc(14px*var(--fs))]" />
@@ -1114,13 +1124,13 @@ export default function OrderPage() {
       )}
 
       {/* Cart / order confirmation sheet */}
-      {showCart && (
+      {showCart && cart.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
           <div className="w-full bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto">
             <div className="w-9 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-[var(--color-text)]">🛒 Pesanan Kamu</h2>
-              <button onClick={() => { if (confirm('Hapus semua item di keranjang?')) { setCart([]); setShowCart(false) } }}
+              <button onClick={() => setAsk({ title: 'Kosongkan keranjang?', message: 'Semua item di keranjang akan dihapus.', label: 'Ya, Kosongkan', run: () => { setCart([]); setShowCart(false) } })}
                 className="text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-danger)]">
                 Kosongkan
               </button>
@@ -1255,6 +1265,11 @@ export default function OrderPage() {
         </div>
       )}
 
+      {ask && (
+        <ConfirmModal danger title={ask.title} message={ask.message} confirmLabel={ask.label}
+          onConfirm={() => { ask.run(); setAsk(null) }}
+          onCancel={() => setAsk(null)} />
+      )}
     </main>
   )
 }
