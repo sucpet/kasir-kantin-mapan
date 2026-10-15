@@ -19,6 +19,7 @@ type Customer = { name: string; points: number }
 
 const SESSION_KEY = 'kantin_order_session'
 const SESSION_TTL = 5 * 60 * 1000
+const CART_KEY = 'kantin_order_cart'
 
 type StoredSession = { phone: string; token: string; name: string; points: number; loginAt: number }
 type LoginResult = { status: string; token?: string; name?: string; points?: number; remaining?: number }
@@ -114,11 +115,16 @@ export default function OrderPage() {
   const [menu, setMenu] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [activeCat, setActiveCat] = useState('Semua')
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem(CART_KEY) ?? '[]') } catch { return [] }
+  })
+  const [search, setSearch] = useState('')
   const [showCart, setShowCart] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
   const [pendingOpts, setPendingOpts] = useState<Picked>({})
   const [pendingQty, setPendingQty] = useState(1)
+  const [pendingNote, setPendingNote] = useState('')
+  const [editKey, setEditKey] = useState<string | null>(null)  // baris keranjang yang sedang diubah
   const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -173,6 +179,10 @@ export default function OrderPage() {
     supabase.from('settings').select('value').eq('key', 'qris_image_url').maybeSingle()
       .then(({ data }) => { if (data?.value) setQrisImageUrl(data.value) })
   }, [])
+
+  useEffect(() => {
+    try { sessionStorage.setItem(CART_KEY, JSON.stringify(cart)) } catch {}
+  }, [cart])
 
   // Poll progres (anon tidak bisa subscribe realtime ke tabel orders karena RLS)
   async function pollProgress() {
@@ -352,9 +362,7 @@ export default function OrderPage() {
     if (isHabis(item)) return
     const opts = item.options ?? []
     if (opts.length > 0) {
-      setPendingOpts({})
-      setPendingQty(1)
-      setOptionItem(item)
+      openSheet(item)
     } else {
       doAddToCart(item, {})
     }
@@ -371,19 +379,50 @@ export default function OrderPage() {
     setOptionItem(null)
   }
 
-  function setQty(cartKey: string, qty: number) {
-    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, qty } : c).filter(c => c.qty > 0))
+  function openSheet(item: MenuItem, line?: CartItem) {
+    const picked: Picked = {}
+    for (const o of line?.opts ?? []) picked[o.g] = [...(picked[o.g] ?? []), o.c]
+    setPendingOpts(picked)
+    setPendingQty(line?.qty ?? 1)
+    setPendingNote(line?.note ?? '')
+    setEditKey(line?.cartKey ?? null)
+    setOptionItem(item)
   }
 
-  function updateNote(cartKey: string, note: string) {
-    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, note } : c))
+  function editLine(line: CartItem) {
+    const item = menu.find(m => m.id === line.menuId)
+    if (item) openSheet(item, line)
+  }
+
+  // Simpan dari jendela pilihan: tambah baru, atau ganti baris yang diubah (posisi tetap).
+  // Pilihan + catatan sama dengan baris lain → digabung jumlahnya.
+  function saveSheet() {
+    const item = optionItem
+    if (!item || !pickedComplete(item.options ?? [], pendingOpts)) return
+    const line = pickedLine(item, item.options ?? [], pendingOpts)
+    const note = pendingNote.trim()
+    const cartKey = [item.id, line.key, note].filter(Boolean).join('::')
+    setCart(prev => {
+      const at = prev.findIndex(c => c.cartKey === editKey)
+      const rest = prev.filter(c => c.cartKey !== editKey)
+      if (rest.some(c => c.cartKey === cartKey))
+        return rest.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + pendingQty } : c)
+      const next = { menuId: item.id, cartKey, name: line.name, price: line.price, qty: pendingQty, note, opts: line.opts }
+      return at >= 0 ? [...rest.slice(0, at), next, ...rest.slice(at)] : [...rest, next]
+    })
+    setOptionItem(null)
+  }
+
+  function setQty(cartKey: string, qty: number) {
+    setCart(prev => prev.map(c => c.cartKey === cartKey ? { ...c, qty } : c).filter(c => c.qty > 0))
   }
 
   const total = orderSum(cart)
   const safeRedeem = Math.min(redeemAmt, customer?.points ?? 0, total)
   const netTotal = total - safeRedeem
   const cartCount = cart.reduce((s, c) => s + c.qty, 0)
-  const filtered = activeCat === 'Semua' ? menu : menu.filter(i => i.category === activeCat)
+  const q = search.trim().toLowerCase()
+  const filtered = menu.filter(i => (activeCat === 'Semua' || i.category === activeCat) && (!q || i.name.toLowerCase().includes(q)))
 
   async function submitOrder() {
     if (!diningType) { setDiningError(true); return }
@@ -853,6 +892,11 @@ export default function OrderPage() {
 
       {/* Category bar — full-width bg, content centered */}
       {activeTab === 'menu' && <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] flex-shrink-0">
+        <div className="max-w-2xl mx-auto px-3 pt-2">
+          <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 Cari menu..."
+            className="w-full px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(13px*var(--fs))] outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)]" />
+        </div>
         <div
           className="max-w-2xl mx-auto px-3 py-2 flex gap-2"
           style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
@@ -873,9 +917,15 @@ export default function OrderPage() {
       {activeTab === 'menu' && <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-3 pb-24">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {filtered.length === 0 && (
+            <p className="col-span-full text-center py-12 text-[length:calc(13px*var(--fs))] text-[var(--color-muted)]">
+              {q ? `Menu "${search.trim()}" tidak ditemukan` : 'Belum ada menu'}
+            </p>
+          )}
           {filtered.map(item => {
-            const cartItem = cart.find(c => c.menuId === item.id)
-            const inCart = cartItem && (item.options ?? []).length === 0 ? cartItem.qty : 0
+            const lines = cart.filter(c => c.menuId === item.id)
+            const count = lines.reduce((s, c) => s + c.qty, 0)
+            const single = lines.length === 1 && (item.options ?? []).length === 0 ? lines[0] : null
             const habis = isHabis(item)
             return (
               <div key={item.id}
@@ -886,6 +936,11 @@ export default function OrderPage() {
                 ) : (
                   <div className="w-full aspect-[4/3] bg-[var(--color-surface2)] flex items-center justify-center flex-shrink-0 text-3xl">
                     🍽️
+                  </div>
+                )}
+                {count > 0 && (
+                  <div className="absolute top-2 right-2 min-w-[calc(24px*var(--fs))] px-1.5 py-0.5 rounded-full text-[length:calc(11px*var(--fs))] font-extrabold text-center bg-[var(--color-primary)] text-white shadow">
+                    {count}
                   </div>
                 )}
                 {habis && (
@@ -906,14 +961,14 @@ export default function OrderPage() {
                   <div className="w-full py-1.5 rounded-lg text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-surface2)] text-[var(--color-muted)] text-center border border-[var(--color-border)]">
                     Stok Habis
                   </div>
-                ) : inCart > 0 ? (
+                ) : single ? (
                   <div className="flex justify-center">
-                    <QtyInput value={inCart} onChange={n => setQty(item.id, n)} />
+                    <QtyInput value={single.qty} onChange={n => setQty(single.cartKey, n)} />
                   </div>
                 ) : (
                   <button onClick={() => tapped(item)}
                     className="w-full py-1.5 rounded-lg text-[length:calc(12px*var(--fs))] font-bold bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity">
-                    {cart.some(c => c.menuId === item.id) ? '+ Tambah Lagi' : '+ Tambah'}
+                    {count > 0 ? '+ Tambah Lagi' : '+ Tambah'}
                   </button>
                 )}
                 </div>
@@ -1015,12 +1070,12 @@ export default function OrderPage() {
 
       {/* Option selection sheet */}
       {optionItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-          <div className="w-full bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[70vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end" onClick={() => setOptionItem(null)}>
+          <div className="w-full max-w-2xl mx-auto bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
             <h3 className="text-[length:calc(15px*var(--fs))] font-extrabold mb-1 text-[var(--color-text)]">{optionItem.name}</h3>
-            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options, pendingOpts).price)}{pendingQty > 1 && ` × ${pendingQty}`}</p>
-            {optionItem.options.map((opt: MenuOption) => (
+            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options ?? [], pendingOpts).price)} / porsi</p>
+            {(optionItem.options ?? []).map((opt: MenuOption) => (
               <div key={opt.name} className="mb-4">
                 <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name}{opt.multi ? ' (boleh lebih dari satu)' : ''}</p>
                 <div className="flex flex-wrap gap-2">
@@ -1037,17 +1092,18 @@ export default function OrderPage() {
                 </div>
               </div>
             ))}
+            <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">Catatan (opsional)</p>
+            <input value={pendingNote} onChange={e => setPendingNote(e.target.value)} maxLength={100}
+              placeholder="cth: tidak pakai sambal"
+              className="w-full mb-4 px-3 py-2 border-[1.5px] border-[var(--color-border)] rounded-xl text-[length:calc(13px*var(--fs))] outline-none bg-transparent text-[var(--color-text)] focus:border-[var(--color-primary)] placeholder:text-[var(--color-muted)]" />
             <div className="flex items-center justify-between mb-4">
               <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)]">Jumlah</p>
               <QtyInput value={pendingQty} onChange={setPendingQty} min={1} />
             </div>
-            <button
-              onClick={() => {
-                if (pickedComplete(optionItem.options, pendingOpts)) doAddToCart(optionItem, pendingOpts, pendingQty)
-              }}
-              disabled={!pickedComplete(optionItem.options, pendingOpts)}
+            <button onClick={saveSheet}
+              disabled={!pickedComplete(optionItem.options ?? [], pendingOpts)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2 disabled:opacity-40">
-              + Tambah {pendingQty} ke Keranjang
+              {editKey ? `✓ Simpan Perubahan · ${rp(pickedLine(optionItem, optionItem.options ?? [], pendingOpts).price * pendingQty)}` : `+ Tambah ${pendingQty} ke Keranjang · ${rp(pickedLine(optionItem, optionItem.options ?? [], pendingOpts).price * pendingQty)}`}
             </button>
             <button onClick={() => setOptionItem(null)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border)] text-[length:calc(13px*var(--fs))] font-semibold text-[var(--color-muted)]">
@@ -1062,7 +1118,13 @@ export default function OrderPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
           <div className="w-full bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto">
             <div className="w-9 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
-            <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold mb-4 text-[var(--color-text)]">🛒 Pesanan Kamu</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-[var(--color-text)]">🛒 Pesanan Kamu</h2>
+              <button onClick={() => { if (confirm('Hapus semua item di keranjang?')) { setCart([]); setShowCart(false) } }}
+                className="text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-danger)]">
+                Kosongkan
+              </button>
+            </div>
 
             <div className="mb-4">
               {cart.map(i => (
@@ -1071,14 +1133,27 @@ export default function OrderPage() {
                     <span className="text-[length:calc(13px*var(--fs))] font-semibold text-[var(--color-text)] flex-1">{i.name}</span>
                     <span className="text-[length:calc(13px*var(--fs))] tabular-nums text-[var(--color-muted)] flex-shrink-0">{rp(i.price * i.qty)}</span>
                   </div>
+                  {i.note && <p className="text-[length:calc(11px*var(--fs))] italic text-[var(--color-muted)] mt-0.5">📝 {i.note}</p>}
                   <div className="flex items-center gap-2 mt-1.5">
                     <QtyInput value={i.qty} onChange={n => setQty(i.cartKey, n)} />
-                    <input value={i.note} onChange={e => updateNote(i.cartKey, e.target.value)}
-                      placeholder="Catatan..."
-                      className="text-[length:calc(11px*var(--fs))] px-2 py-1 border border-[var(--color-border)] rounded-md outline-none focus:border-[var(--color-primary)] bg-transparent placeholder:text-[var(--color-muted)] flex-1 text-[var(--color-text)]" />
+                    <span className="flex-1" />
+                    {menu.some(m => m.id === i.menuId) && (
+                      <button onClick={() => editLine(i)}
+                        className="px-3 py-1.5 rounded-lg border-[1.5px] border-[var(--color-primary)] text-[var(--color-primary)] text-[length:calc(12px*var(--fs))] font-bold">
+                        ✏️ Ubah
+                      </button>
+                    )}
+                    <button onClick={() => setQty(i.cartKey, 0)} aria-label="Hapus item"
+                      className="px-2.5 py-1.5 rounded-lg border-[1.5px] border-[var(--color-danger)] text-[var(--color-danger)] text-[length:calc(12px*var(--fs))] font-bold">
+                      🗑
+                    </button>
                   </div>
                 </div>
               ))}
+              <button onClick={() => setShowCart(false)}
+                className="w-full mt-2 py-2 text-[length:calc(12px*var(--fs))] font-bold text-[var(--color-primary)]">
+                + Tambah menu lain
+              </button>
               <div className="mt-3 pt-2 border-t border-[var(--color-border)]">
                 <div className="flex justify-between text-[length:calc(16px*var(--fs))] font-extrabold">
                   <span className="text-[var(--color-text)]">Total</span>
