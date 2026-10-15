@@ -25,3 +25,24 @@ assert.equal(customerStage({ status: 'paid', served_at: now, payment_issue_at: n
 assert.equal(customerStage({ status: 'done', served_at: null }), 'ready')
 
 console.log('utils OK')
+
+// Pilihan menu + harga tambahan
+{
+  const { togglePick, pickedComplete, pickedLine } = await import('../lib/utils.ts')
+  const groups = [
+    { name: 'Level', choices: ['Sedang', 'Pedas'] },
+    { name: 'Tambahan', choices: ['+ Nasi', '+ Tahu'], prices: { '+ Nasi': 3000, '+ Tahu': 2000 }, multi: true },
+  ]
+  let p = {}
+  assert.equal(pickedComplete(groups, p), false, 'Level wajib')
+  p = togglePick(p, groups[0], 'Sedang'); p = togglePick(p, groups[0], 'Pedas')
+  assert.deepEqual(p.Level, ['Pedas'], 'grup biasa: satu pilihan')
+  assert.equal(pickedComplete(groups, p), true, 'Tambahan tidak wajib')
+  p = togglePick(p, groups[1], '+ Tahu'); p = togglePick(p, groups[1], '+ Nasi')
+  const line = pickedLine({ name: 'Ayam', price: 15000 }, groups, p)
+  assert.equal(line.price, 20000)
+  assert.equal(line.name, 'Ayam (Pedas, + Nasi, + Tahu)', 'urutan ikut menu, bukan urutan ketuk')
+  p = togglePick(p, groups[1], '+ Nasi')
+  assert.equal(pickedLine({ name: 'Ayam', price: 15000 }, groups, p).price, 17000, 'ketuk lagi = batal')
+  console.log('options OK')
+}

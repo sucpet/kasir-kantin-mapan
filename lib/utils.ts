@@ -71,3 +71,28 @@ export function customerStage(o: QueueOrder & { payment_issue_at?: string | null
   if (o.status === 'open') return o.payment_issue_at ? 'issue' : 'waiting'
   return 'cooking'
 }
+
+type OptGroup = { name: string; choices: string[]; prices?: Record<string, number>; multi?: boolean }
+export type Picked = Record<string, string[]>
+
+export function togglePick(picked: Picked, g: OptGroup, choice: string): Picked {
+  const cur = picked[g.name] ?? []
+  const next = !g.multi ? [choice] : cur.includes(choice) ? cur.filter(c => c !== choice) : [...cur, choice]
+  return { ...picked, [g.name]: next }
+}
+
+export function pickedComplete(groups: OptGroup[], picked: Picked): boolean {
+  return groups.every(g => g.multi || (picked[g.name]?.length ?? 0) > 0)
+}
+
+// Item keranjang dari pilihan: label "Nasi Goreng (Pedas, + Telur)" dan harga + tambahan.
+export function pickedLine(base: { name: string; price: number }, groups: OptGroup[], picked: Picked) {
+  const chosen = groups.flatMap(g => g.choices.filter(c => picked[g.name]?.includes(c)).map(c => ({ g: g.name, c, p: g.prices?.[c] ?? 0 })))
+  const label = chosen.map(x => x.c).join(', ')
+  return {
+    name: label ? `${base.name} (${label})` : base.name,
+    price: base.price + chosen.reduce((s, x) => s + x.p, 0),
+    opts: chosen.map(({ g, c }) => ({ g, c })),
+    key: label,
+  }
+}

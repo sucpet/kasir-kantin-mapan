@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
-import { rp, orderSum, fmtTime, customerStage, CustomerStage } from '@/lib/utils'
+import { rp, orderSum, fmtTime, customerStage, CustomerStage, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
 
 type CartItem = {
   menuId: string
@@ -12,6 +12,7 @@ type CartItem = {
   price: number
   qty: number
   note: string
+  opts?: { g: string; c: string }[]
 }
 
 type Customer = { name: string; points: number }
@@ -88,7 +89,7 @@ export default function OrderPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
-  const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
+  const [pendingOpts, setPendingOpts] = useState<Picked>({})
   const [customerName, setCustomerName] = useState(() => getStoredSession()?.name ?? '')
   const [nameError, setNameError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -329,14 +330,13 @@ export default function OrderPage() {
     }
   }
 
-  function doAddToCart(item: MenuItem, opts: Record<string, string>) {
-    const variantStr = Object.values(opts).filter(Boolean).join(', ')
-    const displayName = variantStr ? `${item.name} (${variantStr})` : item.name
-    const cartKey = variantStr ? `${item.id}::${variantStr}` : item.id
+  function doAddToCart(item: MenuItem, picked: Picked) {
+    const line = pickedLine(item, item.options ?? [], picked)
+    const cartKey = line.key ? `${item.id}::${line.key}` : item.id
     setCart(prev => {
       const ex = prev.find(c => c.cartKey === cartKey)
       if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c)
-      return [...prev, { menuId: item.id, cartKey, name: displayName, price: item.price, qty: 1, note: '' }]
+      return [...prev, { menuId: item.id, cartKey, name: line.name, price: line.price, qty: 1, note: '', opts: line.opts }]
     })
     setOptionItem(null)
   }
@@ -374,6 +374,7 @@ export default function OrderPage() {
         qty:          c.qty,
         note:         c.note || '',
         display_name: c.name,
+        opts:         c.opts ?? [],
       })),
     })
 
@@ -998,19 +999,19 @@ export default function OrderPage() {
           <div className="w-full bg-[var(--color-surface)] rounded-t-2xl p-5 max-h-[70vh] overflow-y-auto">
             <div className="w-9 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
             <h3 className="text-[length:calc(15px*var(--fs))] font-extrabold mb-1 text-[var(--color-text)]">{optionItem.name}</h3>
-            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
+            <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options, pendingOpts).price)}</p>
             {optionItem.options.map((opt: MenuOption) => (
               <div key={opt.name} className="mb-4">
-                <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name}</p>
+                <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name}{opt.multi ? ' (boleh lebih dari satu)' : ''}</p>
                 <div className="flex flex-wrap gap-2">
                   {opt.choices.map(ch => (
                     <button key={ch} type="button"
-                      onClick={() => setPendingOpts(prev => ({ ...prev, [opt.name]: ch }))}
+                      onClick={() => setPendingOpts(prev => togglePick(prev, opt, ch))}
                       className={`px-3 py-1.5 rounded-lg text-[length:calc(12px*var(--fs))] font-semibold border-[1.5px] transition-all
-                        ${pendingOpts[opt.name] === ch
+                        ${pendingOpts[opt.name]?.includes(ch)
                           ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                           : 'border-[var(--color-border)] text-[var(--color-text)]'}`}>
-                      {ch}
+                      {ch}{opt.prices?.[ch] ? ` +${opt.prices[ch].toLocaleString('id-ID')}` : ''}
                     </button>
                   ))}
                 </div>
@@ -1018,10 +1019,9 @@ export default function OrderPage() {
             ))}
             <button
               onClick={() => {
-                const allPicked = optionItem.options.every((o: MenuOption) => pendingOpts[o.name])
-                if (allPicked) doAddToCart(optionItem, pendingOpts)
+                if (pickedComplete(optionItem.options, pendingOpts)) doAddToCart(optionItem, pendingOpts)
               }}
-              disabled={!optionItem.options.every((o: MenuOption) => pendingOpts[o.name])}
+              disabled={!pickedComplete(optionItem.options, pendingOpts)}
               className="w-full py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-[length:calc(13px*var(--fs))] font-bold mb-2 disabled:opacity-40">
               + Tambah ke Keranjang
             </button>

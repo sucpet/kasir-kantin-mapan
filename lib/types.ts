@@ -1,6 +1,8 @@
 export interface MenuOption {
   name: string
   choices: string[]
+  prices?: Record<string, number>  // harga tambahan per pilihan
+  multi?: boolean                  // tambahan: boleh pilih beberapa / tidak pilih
 }
 
 export interface MenuItem {

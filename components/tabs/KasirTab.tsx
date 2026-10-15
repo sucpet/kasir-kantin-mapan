@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
-import { rp, orderSum } from '@/lib/utils'
+import { rp, orderSum, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
 import { isConnected, printReceipt } from '@/lib/printer'
 import Modal from '@/components/Modal'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -21,7 +21,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   const [customerName, setCustomerName] = useState('')
   const [loading, setLoading] = useState(false)
   const [optionItem, setOptionItem] = useState<MenuItem | null>(null)
-  const [pendingOpts, setPendingOpts] = useState<Record<string, string>>({})
+  const [pendingOpts, setPendingOpts] = useState<Picked>({})
   const [confirmClear, setConfirmClear] = useState(false)
   const [diningType, setDiningType] = useState<'makan_ditempat' | 'dibungkus' | null>(null)
   const [diningError, setDiningError] = useState(false)
@@ -58,15 +58,14 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
     }
   }
 
-  function doAddToCart(item: MenuItem, opts: Record<string, string>) {
-    const variantStr = Object.values(opts).filter(Boolean).join(', ')
-    const displayName = variantStr ? `${item.name} (${variantStr})` : item.name
-    const cartKey = variantStr ? `${item.id}::${variantStr}` : item.id
+  function doAddToCart(item: MenuItem, picked: Picked) {
+    const line = pickedLine(item, item.options ?? [], picked)
+    const cartKey = line.key ? `${item.id}::${line.key}` : item.id
 
     setCart(prev => {
       const ex = prev.find(c => c.cartKey === cartKey)
       if (ex) return prev.map(c => c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c)
-      return [...prev, { menuId: item.id, cartKey, name: displayName, price: item.price, qty: 1, note: '' }]
+      return [...prev, { menuId: item.id, cartKey, name: line.name, price: line.price, qty: 1, note: '' }]
     })
   }
 
@@ -166,7 +165,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
   }
 
   const allOptsSelected = optionItem
-    ? (optionItem.options ?? []).every(g => pendingOpts[g.name])
+    ? pickedComplete(optionItem.options ?? [], pendingOpts)
     : false
 
   return (
@@ -320,24 +319,24 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
       {optionItem && (
         <Modal center onClose={() => setOptionItem(null)}>
           <h2 className="text-[length:calc(16px*var(--fs))] font-extrabold text-center mb-1">{optionItem.name}</h2>
-          <p className="text-center text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(optionItem.price)}</p>
+          <p className="text-center text-[length:calc(14px*var(--fs))] font-bold text-[var(--color-primary)] mb-4">{rp(pickedLine(optionItem, optionItem.options ?? [], pendingOpts).price)}</p>
           {(optionItem.options ?? []).map((group, gi) => (
             <div key={gi} className="mb-4">
               <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
-                {group.name} *
+                {group.name} {group.multi ? '(boleh lebih dari satu)' : '*'}
               </label>
               <div className="flex flex-wrap gap-2">
                 {group.choices.map(choice => (
                   <button
                     key={choice}
-                    onClick={() => setPendingOpts(prev => ({ ...prev, [group.name]: choice }))}
+                    onClick={() => setPendingOpts(prev => togglePick(prev, group, choice))}
                     className={`px-3.5 py-2 rounded-lg text-[length:calc(13px*var(--fs))] font-semibold border-[1.5px] transition-all
-                      ${pendingOpts[group.name] === choice
+                      ${pendingOpts[group.name]?.includes(choice)
                         ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
                         : 'bg-white border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-primary)]'
                       }`}
                   >
-                    {choice}
+                    {choice}{group.prices?.[choice] ? ` +${group.prices[choice].toLocaleString('id-ID')}` : ''}
                   </button>
                 ))}
               </div>
