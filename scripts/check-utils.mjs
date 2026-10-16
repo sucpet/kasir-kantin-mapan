@@ -44,5 +44,14 @@ console.log('utils OK')
   assert.equal(line.name, 'Ayam (Pedas, + Nasi, + Tahu)', 'urutan ikut menu, bukan urutan ketuk')
   p = togglePick(p, groups[1], '+ Nasi')
   assert.equal(pickedLine({ name: 'Ayam', price: 15000 }, groups, p).price, 17000, 'ketuk lagi = batal')
+  const { isOptional } = await import('../lib/utils.ts')
+  assert.equal(isOptional(groups[1]), true, 'data lama multi tanpa optional = opsional')
+  const one = { name: 'Minum', choices: ['Teh', 'Jeruk'], optional: true }
+  let q = togglePick({}, one, 'Teh'); q = togglePick(q, one, 'Jeruk')
+  assert.deepEqual(q.Minum, ['Jeruk'], 'opsional maks 1')
+  assert.deepEqual(togglePick(q, one, 'Jeruk').Minum, [], 'opsional: ketuk lagi = batal')
+  assert.deepEqual(togglePick(p, groups[0], 'Pedas').Level, ['Pedas'], 'wajib: ketuk lagi tetap terpilih')
+  const wajibMulti = { name: 'Lauk', choices: ['A', 'B'], multi: true, optional: false }
+  assert.equal(pickedComplete([wajibMulti], {}), false, 'wajib + boleh banyak tetap harus pilih')
   console.log('options OK')
 }

@@ -72,17 +72,25 @@ export function customerStage(o: QueueOrder & { payment_issue_at?: string | null
   return 'cooking'
 }
 
-type OptGroup = { name: string; choices: string[]; prices?: Record<string, number>; multi?: boolean }
+type OptGroup = { name: string; choices: string[]; prices?: Record<string, number>; multi?: boolean; optional?: boolean }
+
+export const isOptional = (g: OptGroup) => g.optional ?? !!g.multi
+
+export function groupHint(g: OptGroup): string {
+  return `${isOptional(g) ? 'Opsional' : 'Wajib'} · ${g.multi ? 'boleh lebih dari 1' : isOptional(g) ? 'maks 1' : 'pilih 1'}`
+}
 export type Picked = Record<string, string[]>
 
 export function togglePick(picked: Picked, g: OptGroup, choice: string): Picked {
   const cur = picked[g.name] ?? []
-  const next = !g.multi ? [choice] : cur.includes(choice) ? cur.filter(c => c !== choice) : [...cur, choice]
+  const on = cur.includes(choice)
+  const next = g.multi ? (on ? cur.filter(c => c !== choice) : [...cur, choice])
+    : on && isOptional(g) ? [] : [choice]  // opsional pilih 1: ketuk lagi = batal
   return { ...picked, [g.name]: next }
 }
 
 export function pickedComplete(groups: OptGroup[], picked: Picked): boolean {
-  return groups.every(g => g.multi || (picked[g.name]?.length ?? 0) > 0)
+  return groups.every(g => isOptional(g) || (picked[g.name]?.length ?? 0) > 0)
 }
 
 // Item keranjang dari pilihan: label "Nasi Goreng (Pedas, + Telur)" dan harga + tambahan.

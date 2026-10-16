@@ -2,7 +2,8 @@ export interface MenuOption {
   name: string
   choices: string[]
   prices?: Record<string, number>  // harga tambahan per pilihan
-  multi?: boolean                  // tambahan: boleh pilih beberapa / tidak pilih
+  multi?: boolean                  // boleh pilih lebih dari satu
+  optional?: boolean               // tidak wajib; kosong = ikut multi (data lama: multi = tambahan opsional)
 }
 
 export interface MenuItem {

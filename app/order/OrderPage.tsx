@@ -4,7 +4,7 @@ import { LogOut, Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, MenuOption, Order } from '@/lib/types'
 import ConfirmModal from '@/components/ConfirmModal'
-import { rp, orderSum, fmtTime, customerStage, CustomerStage, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
+import { rp, orderSum, fmtTime, customerStage, CustomerStage, groupHint, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
 
 type CartItem = {
   menuId: string
@@ -1087,7 +1087,7 @@ export default function OrderPage() {
             <p className="text-[length:calc(12px*var(--fs))] text-[var(--color-muted)] mb-4">{rp(pickedLine(optionItem, optionItem.options ?? [], pendingOpts).price)} / porsi</p>
             {(optionItem.options ?? []).map((opt: MenuOption) => (
               <div key={opt.name} className="mb-4">
-                <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name}{opt.multi ? ' (boleh lebih dari satu)' : ''}</p>
+                <p className="text-[length:calc(11px*var(--fs))] font-extrabold uppercase tracking-wider text-[var(--color-muted)] mb-2">{opt.name} <span className="normal-case tracking-normal font-semibold">({groupHint(opt)})</span></p>
                 <div className="flex flex-wrap gap-2">
                   {opt.choices.map(ch => (
                     <button key={ch} type="button"

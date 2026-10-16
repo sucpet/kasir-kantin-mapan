@@ -10,7 +10,7 @@ interface MenuTabProps {
   onToast: (msg: string) => void
 }
 
-type FormOpt = { name: string; choices: string[]; prices: Record<string, number>; multi: boolean; newChoice: string; newPrice: string }
+type FormOpt = { name: string; choices: string[]; prices: Record<string, number>; multi: boolean; optional: boolean; newChoice: string; newPrice: string }
 
 export default function MenuTab({ onToast }: MenuTabProps) {
   const [items, setItems] = useState<MenuItem[]>([])
@@ -49,7 +49,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
     setForm({ name: item.name, price: String(item.price), category: item.category, newCat: '', imageUrl: item.image_url ?? '' })
     setImageFile(null)
     setImagePreview(item.image_url ?? '')
-    setFormOpts((item.options ?? []).map(o => ({ ...o, prices: o.prices ?? {}, multi: !!o.multi, newChoice: '', newPrice: '' })))
+    setFormOpts((item.options ?? []).map(o => ({ ...o, prices: o.prices ?? {}, multi: !!o.multi, optional: o.optional ?? !!o.multi, newChoice: '', newPrice: '' })))
     setShowEditor(true)
   }
 
@@ -80,7 +80,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
   }
 
   function addOptGroup() {
-    setFormOpts(prev => [...prev, { name: '', choices: [], prices: {}, multi: false, newChoice: '', newPrice: '' }])
+    setFormOpts(prev => [...prev, { name: '', choices: [], prices: {}, multi: false, optional: false, newChoice: '', newPrice: '' }])
   }
 
   function updateGroupName(idx: number, name: string) {
@@ -119,7 +119,7 @@ export default function MenuTab({ onToast }: MenuTabProps) {
       .filter(g => g.name.trim() && g.choices.length > 0)
       .map(g => {
         const prices = Object.fromEntries(g.choices.filter(c => g.prices[c] > 0).map(c => [c, g.prices[c]]))
-        return { name: g.name.trim(), choices: g.choices, ...(Object.keys(prices).length && { prices }), ...(g.multi && { multi: true }) }
+        return { name: g.name.trim(), choices: g.choices, ...(Object.keys(prices).length && { prices }), multi: g.multi, optional: g.optional }
       })
 
     setSaving(true)
@@ -299,10 +299,16 @@ export default function MenuTab({ onToast }: MenuTabProps) {
                   />
                   <button onClick={() => removeGroup(gi)} className="text-[var(--color-danger)] text-[length:calc(13px*var(--fs))] px-1.5 hover:opacity-70">✕</button>
                 </div>
-                <label className="flex items-center gap-2 mb-2 text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">
-                  <input type="checkbox" checked={group.multi} onChange={e => updateGroup(gi, { multi: e.target.checked })} />
-                  Tambahan: tidak wajib, boleh pilih lebih dari satu
-                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-[length:calc(11px*var(--fs))] text-[var(--color-muted)]">
+                  <label className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={group.optional} onChange={e => updateGroup(gi, { optional: e.target.checked })} />
+                    Tidak wajib
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={group.multi} onChange={e => updateGroup(gi, { multi: e.target.checked })} />
+                    Boleh pilih lebih dari 1
+                  </label>
+                </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {group.choices.map((c, ci) => (
                     <span key={ci} className="flex items-center gap-1 px-2 py-0.5 bg-[var(--color-primary-light)] text-[var(--color-primary)] text-[length:calc(11px*var(--fs))] font-semibold rounded-full border border-[var(--color-primary)]/20">

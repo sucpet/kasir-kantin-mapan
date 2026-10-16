@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem, Order } from '@/lib/types'
-import { rp, orderSum, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
+import { rp, orderSum, groupHint, Picked, togglePick, pickedComplete, pickedLine } from '@/lib/utils'
 import { isConnected, printReceipt } from '@/lib/printer'
 import Modal from '@/components/Modal'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -323,7 +323,7 @@ export default function KasirTab({ onToast, onOrderCreated }: KasirTabProps) {
           {(optionItem.options ?? []).map((group, gi) => (
             <div key={gi} className="mb-4">
               <label className="block text-[length:calc(11px*var(--fs))] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">
-                {group.name} {group.multi ? '(boleh lebih dari satu)' : '*'}
+                {group.name} <span className="normal-case tracking-normal font-semibold">({groupHint(group)})</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {group.choices.map(choice => (
